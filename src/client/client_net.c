@@ -12,13 +12,12 @@
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, 
     unsigned char *out_data, unsigned char *out_len, MsgType *out_type) {
     
-    unsigned char sending_frame[64];
-    unsigned char buffer_rec[256];
+    unsigned char sending_frame[64], buffer_rec[256];
     unsigned char rec_seq, rec_len;
     int frame_size = pack_frame(*seq_num, mov_type, NULL, 0, sending_frame);
     MsgType rec_type;
 
-    struct timeval timeout = { .tv_sec = TIMEOUT_MS / 1000, .tv_sec = (TIMEOUT_MS%1000) * 1000};
+    struct timeval timeout = { .tv_sec = TIMEOUT_MS / 1000, .tv_usec = (TIMEOUT_MS%1000) * 1000};
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     
     while(1) {
@@ -40,7 +39,7 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type,
                         }
 
                         *out_len = rec_len;
-                        *out_data = rec_type;
+                        *out_type = rec_type;
                         *seq_num = (*seq_num + 1) % 64;
                         return 1;
                     }
@@ -60,7 +59,7 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
     char filepath[128];
     
     // dots é como se chama as pastilhas do jogo em ingles
-    //Vamos fazer tudo em Inglês mano? se não tem que mudar
+
     if (file_type == MSG_TXT) strcpy(filepath, "dots/file.txt");
     else if (file_type == MSG_JPG) strcpy(filepath, "dots/file.jpg");
     else if (file_type == MSG_MP4) strcpy(filepath, "dots/file.mp4");
@@ -75,9 +74,33 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
 
     if (initial_len > 0) fwrite(initial_data, 1, initial_len, file);
 
+    unsigned char rec_seq, rec_len, ack_frame[64], buffer_rec[256], data_rec[MAX_DATA_LEN];
+    MsgType rec_type;
+
     // Aqui entramos em um loop recebendo MSG_DADOS e respondendo com MSG_ACK
-    // Vamos fazer direto janela deslizante?
-    
+    while (1) {
+        int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
+        send(sockfd, ack_frame, ack_size, 0);
+
+        int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
+
+        if (read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len) == 0) {
+
+            if (rec_seq == (*seq_num + 1) % 64) {
+                *seq_num = rec_seq;
+                
+                if (rec_type == MSG_DADOS) fwrite(data_rec, 1, rec_len, file);
+                else if (rec_type == MSG_FIM) {
+                    printf("\nDownload concluded\n");
+
+                    ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
+                    send(sockfd, ack_frame, ack_size, 0);
+                    break;
+                }
+            }
+        }
+    }
     fclose(file);
     return 1;
 }
+ 

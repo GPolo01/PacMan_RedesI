@@ -20,11 +20,8 @@ int main(int argc, char **argv) {
     while (1) {
         // Ler movimento, enviar mensagem, receber mensagem
         char key = getchar();
-        unsigned char seq_received, len_received;
-        MsgType moviment_type;
-        MsgType type_received;
-        unsigned char sending_frame[64];
-        unsigned char data_received[MAX_DATA_LEN];
+        MsgType moviment_type, type_received;
+        unsigned char len_received, data_received[MAX_DATA_LEN];
 
         //Vamos primeiro ler o teclado, movimento
         switch (key) {
@@ -37,9 +34,24 @@ int main(int argc, char **argv) {
 
         
         // Enviar a mensagem
-        int frame_size = pack_frame(seq_num, moviment_type, NULL, 0, sending_frame);
-        send(sock_client, sending_frame, frame_size, 0);
-        seq_num = (seq_num + 1) % 64;
+        printf("Sending movement\n");
+        int success = send_and_wait(sock_client, &seq_num, moviment_type, data_received, &len_received, &type_received);
+        
+        if (success) {
+            if (type_received == MSG_VISUALIZACAO) {
+                printf("New visualization received! Vision size: %d vytes\n", len_received);
+            }
+            else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
+                printf("We found a dot. Receiving file\n");
+                receive_file(sock_client, &seq_num, type_received, data_received, len_received);
+            }
+            else if (type_received == MSG_ERROS) {
+                printf("Server reported an error in transmission");
+            }
+            else if (type_received == MSG_FIM) {
+                printf("Game Over! All dots collected or dead by ghosts.");
+            }
+        }
 
         /* Receber a mensagem
         recv(soc_server, buffer_rec, 256, 0);
@@ -54,9 +66,6 @@ int main(int argc, char **argv) {
         }
 
         */
-
-        
-        
     }
     close(sock_client);
     return 0;
