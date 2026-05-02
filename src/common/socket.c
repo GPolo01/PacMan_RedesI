@@ -10,7 +10,7 @@
 #include <stdlib.h>
 #include <stdio.h>
  
-int create_raw_socket(char* network_interface) {
+int create_raw_socket(const char* network_interface) {
     // Create socket for raw packets bypassing the OS network stack
  
     int sock = socket(AF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
