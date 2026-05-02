@@ -38,7 +38,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
 
                         if (rec_type == MSG_ACK) {
                             *seq_num = (*seq_num + 1) % 64;
-                            return;
+                            return 1;
                         }
                     }
                 }

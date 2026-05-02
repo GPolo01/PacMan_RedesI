@@ -71,7 +71,7 @@ void random_position(char matriz[SIZE][SIZE], char char_symbol, struct character
 }
 
 // Processes PacMan's movement requested by the client
-void pacman_moviment(MsgType mov_type) {
+void pacman_movement(MsgType mov_type) {
     int x = pacman.x;
     int y = pacman.y;
 
@@ -104,7 +104,7 @@ void pacman_moviment(MsgType mov_type) {
     4 - Y - random;
 */
 // Handles the AI for ghosts
-void ghosts_moviment(int *matriz[SIZE][SIZE], struct character *c, int id){
+void ghosts_movement(char matriz[SIZE][SIZE], struct character *c, int id){
     int x = c->x;
     int y = c->y;
 
@@ -138,12 +138,12 @@ void ghosts_moviment(int *matriz[SIZE][SIZE], struct character *c, int id){
     }
 
     // Move Ghost on map
-    if (id == 1) map[x][y] = 'R';
-    else if (id == 2) map[x][y] = 'B';
-    else if (id == 3) map[x][y] = 'G';
-    else map[x][y] = 'Y';
+    if (id == 1) matriz[x][y] = 'R';
+    else if (id == 2) matriz[x][y] = 'B';
+    else if (id == 3) matriz[x][y] = 'G';
+    else matriz[x][y] = 'Y';
     
-    map[c->x][c->y] = '0';
+    matriz[c->x][c->y] = '0';
     c->x = x;
     c->y = y;
 }
@@ -185,11 +185,11 @@ int main(int argc, char **argv) {
     load_map(map, "maze.csv");
     pacman.life = 3;
 
-    random_position(map, "P", &pacman);
-    random_position(map, "R", &red_ghost);
-    random_position(map, "G", &green_ghost);
-    random_position(map, "B", &blue_ghost);
-    random_position(map, "Y", &yellow_ghost);
+    random_position(map, 'P', &pacman);
+    random_position(map, 'R', &red_ghost);
+    random_position(map, 'G', &green_ghost);
+    random_position(map, 'B', &blue_ghost);
+    random_position(map, 'Y', &yellow_ghost);
 
     unsigned char seq_rec, len_rec, server_seq = 0;
     int read_bytes;
@@ -214,11 +214,11 @@ int main(int argc, char **argv) {
                 round_num++;
                 if (round_num % 5 == 0) vision_range++;
 
-                pacman_moviment(type_rec);
-                ghosts_moviment(map, &red_ghost, 1);
-                ghosts_moviment(map, &blue_ghost, 2);
-                ghosts_moviment(map, &green_ghost, 3);
-                ghosts_moviment(map, &yellow_ghost, 4);
+                pacman_movement(type_rec);
+                ghosts_movement(map, &red_ghost, 1);
+                ghosts_movement(map, &blue_ghost, 2);
+                ghosts_movement(map, &green_ghost, 3);
+                ghosts_movement(map, &yellow_ghost, 4);
 
                 unsigned char fog_data[MAX_DATA_LEN];
                 int vision_size = get_new_vision(fog_data, vision_range);

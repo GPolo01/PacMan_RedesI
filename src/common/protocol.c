@@ -1,5 +1,6 @@
 #include "protocol.h"
 #include <stdio.h>
+#include <string.h>
 #include <stdint.h>
 
 // tabela para otimização do crc
