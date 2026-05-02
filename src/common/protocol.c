@@ -27,58 +27,67 @@ unsigned char crc(unsigned char len, unsigned char seq,
     
     unsigned char crc = 0x00;
 
+    // Calculate CRC over the header bytes first
     crc = crc8_table[crc ^ (unsigned char)(((len & 0x1F) << 3) | ((seq >> 3) & 0x07))];
     crc = crc8_table[crc ^ (unsigned char)(((seq & 0x07) << 5) | (type & 0x1F))];
 
+    // Calculate CRC over the payload
     for (int i = 0; i < len; i++) crc = crc8_table[crc ^ data[i]];
 
     return crc;
 }
 
-// Monta o frame para envio e 
+
 int pack_frame(unsigned char seq, MsgType type, const unsigned char *data, 
     unsigned char len, unsigned char *buf) {
     
+    // Validation to prevent buffer overflow or malformed packets   
     if (len > MAX_DATA_LEN || type > 16 || seq > MAX_SEQ) return 0;
 
-    // Montagem
+    // Byte 0: Frame Marker
     buf[0] = FRAME_MARKER;
+
+    // Byte 1: 5 bits for Length, 3 for Sequence
     buf[1] = (unsigned char)(((len & 0x1F) << 3) | ((seq >> 3) & 0x07));
+    
+    // Byte 2: 3 bits for Sequence, 5 for Type
     buf[2] = (unsigned char)(((seq & 0x07) << 5) | (type & 0x1F));
 
+    // Payload
     if (len > 0 && data != NULL) memcpy(buf + 3, data, len);
 
+    // Byte N: CRC
     buf[3 + len] = crc(len, seq, (unsigned char)type, data);
 
-    return 4 + len;
+    return 4 + len; // Total frame size
 }
 
-// Desmonta/valida frame
+
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     MsgType *out_type, unsigned char *out_data, unsigned char *out_len) {
-    
-    
-    if (length < 4 || buf[0] != FRAME_MARKER) return MSG_ERROS;
+    // At least 4 bytes (Marker + Header + Header + CRC)
+    if (length < 4 || buf[0] != FRAME_MARKER) return MSG_ERROR;
 
     unsigned char b1 = buf[1];
     unsigned char b2 = buf[2];
 
+    // Extracting bits
     unsigned char len = (b1 >> 3) & 0x1F;
     unsigned char seq = ((b1 & 0x07) << 3) | ((b2 >> 5) & 0x07);
     unsigned char type = b2 & 0x1F;
 
+    // Ensure the buffer contains the full length
     if (length < 4 + len) return -1;
 
-    unsigned char crc_recebido = buf[3 + len];
-    unsigned char crc_calculado = crc(len, seq, type, buf + 3);
+    unsigned char received_crc = buf[3 + len];
+    unsigned char calculated_crc = crc(len, seq, type, buf + 3);
 
-    if (crc_calculado != crc_recebido) return -1;
+    if (calculated_crc != received_crc) return -1; // Data corrupted
 
     *out_len = len;
     *out_seq = seq;
     *out_type = (MsgType)type;
-
     if (len > 0 && out_data != NULL) memcpy(out_data, buf + 3, len);
 
-    return 0;
+    return 0; // Success
 }
