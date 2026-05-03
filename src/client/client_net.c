@@ -27,12 +27,18 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type,
 
             if (read_bytes > 0) {
                 if (unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, out_data, &rec_len) == 0) {
-                    if (rec_seq == *seq_num) {
+                    // Don't proccess the msg u have sended (same type)
+                    if (rec_seq == *seq_num && rec_type != mov_type) {
                         if (rec_type == MSG_NACK) {
                             printf("NACK received. Beginning retransmission...\n");
                             break; // Break the DO-WHILE, triggers the outer WHILE to re-send
                         }
-
+                        
+                        // Sending ACK to server
+                        unsigned char ack_frame[64];
+                        int ack_size = pack_frame(rec_seq, MSG_ACK, NULL, 0, ack_frame);
+                        send(sockfd, ack_frame, ack_size, 0);
+                        
                         *out_len = rec_len;
                         *out_type = rec_type;
                         *seq_num = (*seq_num + 1) % 64; // Increment sequence upon success

@@ -38,21 +38,30 @@ char map[SIZE][SIZE];
         Y - aleatorio;
 */
 
-// Loads the maze from a CSV file into the map matrix
-void load_map(char matriz[SIZE][SIZE],const char *filename) {
+// Loads the maze from a CSV file or generates a fallback map if missing
+void load_map(char matriz[SIZE][SIZE], const char *filename) {
     FILE *file = fopen(filename, "r");
+    
     if (file == NULL) {
-        printf("Error trying to open file %s. Using default map.\n", filename);
-        // Otherwise we are going to use the default map UFPR
+        printf("Error: File %s not found. Generating a blank test map...\n", filename);
+        // TODO: Change for the UFPR map
+        for (int i = 0; i < SIZE; i++) {
+            for (int j = 0; j < SIZE; j++) {
+                if (i == 0 || i == SIZE - 1 || j == 0 || j == SIZE - 1) {
+                    matriz[i][j] = 'X'; // Paredes nas bordas
+                } else {
+                    matriz[i][j] = '0'; // Caminho livre no meio
+                }
+            }
+        }
         return;
     }
-
+    
     for (int i = 0; i < SIZE; i++) {
         for (int j = 0; j < SIZE; j++) {
-            if (!fscanf(file, "%c;", &matriz[i][j])) break;
+            if (!fscanf(file, " %c;", &matriz[i][j])) break;
         }
     }
-    
     fclose(file);
 }
 
