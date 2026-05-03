@@ -9,7 +9,7 @@ SERVER_DIR = server
 
 # Arquivos Fonte
 COMMON_SRC = $(COMMON_DIR)/protocol.c $(COMMON_DIR)/socket.c
-CLIENT_SRC = $(CLIENT_DIR)/client.c $(CLIENT_DIR)/client_net.c
+CLIENT_SRC = $(CLIENT_DIR)/client.c $(CLIENT_DIR)/client_net.c $(CLIENT_DIR)/client_ui.c $(CLIENT_DIR)/client_input.c
 SERVER_SRC = $(SERVER_DIR)/server.c $(SERVER_DIR)/server_net.c
 
 # Objetos (transformando .c em .o)
