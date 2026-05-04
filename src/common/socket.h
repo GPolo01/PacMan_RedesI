@@ -1,11 +1,11 @@
 #ifndef SOCKET_H
 #define SOCKET_H
 
-// Cria e configura o raw socket em modo promíscuo
-// Retorna o descritor do socket ou encerra o programa em caso de erro
+// Creates and configures the raw socket in promiscuous mode
+// Returns the socket descriptor or exits the program on error
 int create_raw_socket(const char *iface);
 
-// Retorna o tempo atual do sistema em ms
+// Returns the current system time in ms
 long long get_timestamp_ms(void);
 
 #endif
