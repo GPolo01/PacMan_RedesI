@@ -41,7 +41,9 @@ int main(int argc, char **argv) {
         success = send_and_wait(sock_client, &seq_num, movement_type, data_received, &len_received, &type_received);
         
         if (success) {
+            printf("type received: %d\n", type_received);
             if (type_received == MSG_VISION) {
+                sleep(1); // Simulate processing time
                 render_map(data_received, len_received);
             }
             else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {

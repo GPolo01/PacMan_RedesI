@@ -171,6 +171,11 @@ int get_new_vision(unsigned char *out_buffer, int range) {
 
     for (int i = pacman.x - range; i <= pacman.x + range; i++) {
         for (int j = pacman.y - range; j <= pacman.y + range; j++) {
+            if (written_bytes >= MAX_DATA_LEN) {
+                printf("estourou");
+                return written_bytes;
+            }
+
             if (i < 0 || i >= SIZE || j < 0 || j >= SIZE) {
                 out_buffer[written_bytes] = 'X';
             } else {
@@ -211,6 +216,7 @@ int main(int argc, char **argv) {
         read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
 
         if( read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec) == 0) {
+            printf("type received: %d\n", type_rec);
             
             if (type_rec == MSG_INIT) {
                 printf("Connected to client! Sending initial map vision.\n");
@@ -221,6 +227,8 @@ int main(int argc, char **argv) {
             }
             else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                 round_num++;
+                printf("Round %d\n", round_num);
+                
                 if (round_num % 5 == 0) vision_range++;
 
                 pacman_movement(type_rec);
@@ -234,6 +242,7 @@ int main(int argc, char **argv) {
 
                 //enviamos nova visualizacaoo do mapa
                 server_send(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                printf("Map sended\n");
             }
         }
     }
