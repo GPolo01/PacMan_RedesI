@@ -59,8 +59,18 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
 
     // Byte N: CRC
     buf[3 + len] = crc(len, seq, (unsigned char)type, data);
+    
+    int total_frame_size = 4 + len; // Total frame size
+    
 
-    return 4 + len; // Total frame size
+    int MIN_FRAME_SIZE = 14; 
+    if (total_frame_size < MIN_FRAME_SIZE) {
+        // Fill with zeros to 14 bytes
+        memset(buf + total_frame_size, 0, MIN_FRAME_SIZE - total_frame_size);
+        total_frame_size = MIN_FRAME_SIZE; 
+    }
+
+    return total_frame_size;
 }
 
 
