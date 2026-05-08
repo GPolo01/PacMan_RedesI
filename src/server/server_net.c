@@ -8,7 +8,7 @@
 #include <sys/time.h>
 
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
-    unsigned char *data, unsigned char len) {
+                unsigned char *data, unsigned char len) {
     
     MsgType rec_type;
     unsigned char rec_seq, rec_len, sending_frame[64], buffer_rec[256];
@@ -47,4 +47,21 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
 
         printf("TIMEOUT! Begin retrasmission from Server.\n");
     }
+}
+
+int server_send_stream(int sockfd, unsigned char *seq_num, MsgType type, 
+                       unsigned char *data, int total_len) {
+    int bytes_sent = 0;
+
+    while (bytes_sent < total_len) {
+        int chunk_size = total_len - bytes_sent;
+        if (chunk_size > MAX_DATA_LEN) chunk_size = MAX_DATA_LEN;
+
+        int success = server_send(sockfd, seq_num, type, data + bytes_sent, chunk_size);
+        if (!success) return 0;
+
+        bytes_sent += chunk_size;
+    }
+
+    return server_send(sockfd, seq_num, MSG_END, NULL, 0);
 }

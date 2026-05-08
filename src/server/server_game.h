@@ -3,7 +3,7 @@
 
 #include "../common/protocol.h"
 
-#define SIZE 40
+#define SIZE 10
 
 struct character {
     int x;

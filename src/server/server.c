@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     unsigned char seq_rec, len_rec, server_seq = 0;
     int read_bytes;
     MsgType type_rec;
-    unsigned char buffer_rec[256], data_rec[MAX_DATA_LEN];
+    unsigned char buffer_rec[256], data_rec[2000];
     
     printf("Server initiated, waiting for client on interface %s...\n", argv[1]);
 
@@ -44,9 +44,9 @@ int main(int argc, char **argv) {
             if (type_rec == MSG_INIT) {
                 printf("Connected to client! Sending initial map vision.\n");
                 round_num = 0;
-                unsigned char fog_data[MAX_DATA_LEN];
+                unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
-                server_send(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
             else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                 round_num++;
@@ -62,11 +62,11 @@ int main(int argc, char **argv) {
 
                 render_server_matrix(map);
 
-                unsigned char fog_data[MAX_DATA_LEN];
+                unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
 
                 //enviamos nova visualizacaoo do mapa
-                server_send(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
                 printf("Map sended\n");
             }
         }
