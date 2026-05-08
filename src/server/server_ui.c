@@ -42,11 +42,6 @@ int get_new_vision(unsigned char *out_buffer, int range) {
 
     for (int i = pacman.x - range; i <= pacman.x + range; i++) {
         for (int j = pacman.y - range; j <= pacman.y + range; j++) {
-            if (written_bytes >= MAX_DATA_LEN) {
-                printf("estourou\n");
-                return written_bytes;
-            }
-
             if (i < 0 || i >= SIZE || j < 0 || j >= SIZE) {
                 out_buffer[written_bytes] = 'X';
             } else {
