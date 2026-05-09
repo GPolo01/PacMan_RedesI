@@ -6,7 +6,8 @@
 // Maximum wait thime for a server response
 #define TIMEOUT_MS 1000
 
-int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
-    unsigned char *data, unsigned char len);
+// Sends large payloads into 31-byte chunks and terminates with MSG_END
+int server_send_stream(int sockfd, unsigned char *seq_num, MsgType type, 
+    unsigned char *data, int total_len);
 
 #endif

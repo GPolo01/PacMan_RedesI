@@ -17,7 +17,8 @@ int main(int argc, char **argv) {
     unsigned char seq_num = 0;
 
     MsgType type_received;
-    unsigned char len_received, data_received[MAX_DATA_LEN];
+    unsigned char len_received, data_received[MAX_DATA_LEN], full_vision[2000];
+    int full_len = 0;
 
     show_startup_message(argv[1]);
     show_message("Sending INIT message...");
@@ -25,7 +26,9 @@ int main(int argc, char **argv) {
     int success = send_and_wait(sock_client, &seq_num, MSG_INIT, data_received, &len_received, &type_received);
 
     if (success && type_received == MSG_VISION) {
-        render_map(data_received, len_received);
+        recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
+        render_map(full_vision, full_len);
+
     } else {
         printf("Failed to initialize game with server.\n");
         close(sock_client);
@@ -44,7 +47,8 @@ int main(int argc, char **argv) {
             printf("type received: %d\n", type_received);
             if (type_received == MSG_VISION) {
                 sleep(1); // Simulate processing time
-                render_map(data_received, len_received);
+                recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
+                render_map(full_vision, full_len);
             }
             else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
                 show_message("\n>>> We found a dot! Receiving file...");
@@ -53,10 +57,6 @@ int main(int argc, char **argv) {
             }
             else if (type_received == MSG_ERROR) {
                 show_error("Server reported an error in transmission.");
-            }
-            else if (type_received == MSG_END) {
-                show_message("Game Over! All dots collected or killed by ghosts.");
-                break;
             }
         }
     }
