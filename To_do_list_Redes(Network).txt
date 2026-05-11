@@ -1,0 +1,17 @@
+To-do list:
+1. Server_game.c:
+	Cuidarmos das colisões pacman-fantasmas, fantasmas-fantasmas, fantasmas-pastilhas, pacman-pastilhas, fantasmas-paredes.
+	pacman-pastilhas, deve enviar e mostrar o arquivo no client;
+	pacman-fantasmas, enviar apenas para mostrar um arquivo mostrando que perdeu uma vida até ser game-over;
+	desenhar mapa com UFPR centralizado no meio do mapa com um tamanho decente 20x20.
+2.Client:
+	Configurar com uma biblioteca <termios.h> para capturar o envio dos movimentos em tempo real, eliminando necessidade de enter em todos os comando.
+	Tratamento de comandos inexistentes(todas as outras teclas que se não WASD).
+3.Server:
+	É pedido um log das mensagens recebidas e enviadas numa janela separada.
+4.Client_ui.c:
+	Implementação das cores para o mapa, os espaços vazios, paredes, pacman, fantasmas e pastilhas e áreas fora do mapa.
+6.Seleção dos arquivos e teste de envio deles para garantir integridade dos dados, além da verificação do byte que muda precisando de uma verificação extra.
+5.Testes de desconexão de cabos durante funcionamento do programa.
+6.Server_net.c:
+	Implementação da Janela Deslizante.
