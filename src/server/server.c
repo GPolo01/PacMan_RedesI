@@ -22,11 +22,11 @@ int main(int argc, char **argv) {
     load_map(map, "maze.csv");
     pacman.life = 3;
 
-    random_position(map, 'P', &pacman);
-    random_position(map, 'R', &red_ghost);
-    random_position(map, 'G', &green_ghost);
-    random_position(map, 'B', &blue_ghost);
-    random_position(map, 'Y', &yellow_ghost);
+    random_position(map, &pacman);
+    random_position(map, &red_ghost);
+    random_position(map, &green_ghost);
+    random_position(map, &blue_ghost);
+    random_position(map, &yellow_ghost);
 
     unsigned char seq_rec, len_rec, server_seq = 0;
     int read_bytes;
@@ -59,6 +59,16 @@ int main(int argc, char **argv) {
                 ghosts_movement(map, &blue_ghost, 2);
                 ghosts_movement(map, &green_ghost, 3);
                 ghosts_movement(map, &yellow_ghost, 4);
+
+                char action = check_collisions();
+
+                if (action >= '1' && action <= '6') {
+                    printf("PACMAN COMEU O ARQUIVO %c!\n", action);
+                    // Dispara a janela deslizante enviando o prêmio
+                } else if (action == 'M') {
+                    printf("PACMAN MORREU!\n");
+                    // Encerra a partida e manda vídeo de Game Over
+                }
 
                 render_server_matrix(map);
 

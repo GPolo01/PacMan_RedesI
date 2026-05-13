@@ -6,6 +6,7 @@
 #define SIZE 10
 
 struct character {
+    char left_right_sense; //Only for the green ghost (0-right,1-left)
     int x;
     int y;
     int life;
@@ -25,8 +26,9 @@ extern struct character yellow_ghost;
 
 extern char map[SIZE][SIZE];
 
-void random_position(char matriz[SIZE][SIZE], char char_symbol, struct character *c);
+void random_position(char matriz[SIZE][SIZE], struct character *c);
 void pacman_movement(MsgType mov_type);
 void ghosts_movement(char matriz[SIZE][SIZE], struct character *c, int id);
+char check_collisions();
 
 #endif

@@ -3,6 +3,7 @@
 #include "client_net.h"
 #include "client_ui.h"
 #include "client_input.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 

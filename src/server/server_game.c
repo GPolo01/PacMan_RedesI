@@ -29,7 +29,7 @@ char map[SIZE][SIZE];
 */
 
 // Spawns a character at a random empty ('0') position
-void random_position(char matriz[SIZE][SIZE], char char_symbol, struct character *c) {
+void random_position(char matriz[SIZE][SIZE], struct character *c) {
     int i, j;
     do {
         i = rand() % SIZE;
@@ -39,7 +39,7 @@ void random_position(char matriz[SIZE][SIZE], char char_symbol, struct character
     c->x = i;
     c->y = j;
     c->direction = 0; // All start facing UP 
-    matriz[i][j] = char_symbol;
+    c->left_right_sense = '0'; //only important to Green Ghost
 }
 
 // Processes PacMan's movement requested by the client
@@ -52,19 +52,14 @@ void pacman_movement(MsgType mov_type) {
         case MSG_MOV_DOWN:  x++; break;
         case MSG_MOV_RIGHT: y++; break;
         case MSG_MOV_LEFT:  y--; break;
-        default: break;
+        default: return;
     }
 
     // Bounds and wall checking
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return;
     if (map[x][y] == 'X') return;
 
-    // Se comeu pastilha, bateu em fastasmas
-    // if (map[x][y]) return;
-
-    // Update map matrices
-    map[x][y] = 'P';
-    map[pacman.x][pacman.y] = '0';
+    // Update localization
     pacman.x = x;
     pacman.y = y;
 }
@@ -76,46 +71,73 @@ void pacman_movement(MsgType mov_type) {
     4 - Y - random;
 */
 // Handles the AI for ghosts
+
+// Replacement of switch for 2 vetors
+int dir_x[4] = {-1, 0, 1, 0};
+int dir_y[4] = {0, 1, 0, -1};
 void ghosts_movement(char matriz[SIZE][SIZE], struct character *c, int id){
-    int x = c->x;
-    int y = c->y;
+    int direction = c->direction;
+    int x = c->x + dir_x[direction];
+    int y = c->y + dir_y[direction];
 
-    switch (c->direction) {
-        case 0: y++; break;
-        case 1: x++; break;
-        case 2: y--; break;
-        case 3: x--; break;
-        default: break;
+    // If it okay to go(not a wall), just go
+    if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matriz[x][y] != 'X') {
+        c->x = x;
+        c->y = y;
+        return; 
     }
 
-    // Boundary and collision logic
-    if (x < 0 || x >= SIZE || y < 0 || y >= SIZE || map[x][y] == 'X') {
-        switch (id) {
-            case 1: // Red Ghost - Left Hand Rule
-                if (c->direction == 0) c->direction = 3;
-                else c->direction--;
-                break;
-            case 2: // Blue Ghost - Right Hand Rule
-                if (c->direction == 3) c->direction = 0;
-                else c->direction++;
-                break;
-            case 3: // Green Ghost - Alternate Left/Right
-                // TODO: Implement toggle state
-                break;
-            case 4: // Yellow Ghost - Random
-                c->direction = rand() % 4;
-                break;
+    // Otherwise, detected collision
+    int new_direction = direction;
+
+    // Red, blue, green and yellow
+    if (id == 1) new_direction = (direction + 3) % 4;
+    else if (id == 2) new_direction = (direction + 1) % 4;
+    else if (id == 3) {
+        if (c->left_right_sense == '0') {
+            new_direction = (direction + 1 ) % 4;
+            c->left_right_sense = '1'; 
+        } else {
+            new_direction = (direction + 3) % 4;
+            c->left_right_sense = '0';
         }
-        return; // Did not move this turn due to collision
+    }
+    else if (id == 4) new_direction = rand() % 4;
+
+    c->direction = new_direction;
+    int possible = 0;
+
+    // Check all the directions so he doesn't just stand in front of a wall
+    while (possible < 4) {
+        x = c->x + dir_x[c->direction];
+        y = c->y + dir_y[c->direction];
+
+        if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matriz[x][y] != 'X') {
+            c->x = x;
+            c->y = y;
+            return;
+        }
+
+        c->direction = (c->direction + 1) % 4;
+        possible++;
+    }
+}
+
+char check_collisions() {
+    // With ghosts
+    if((pacman.x == red_ghost.x && pacman.y == red_ghost.y) || 
+        (pacman.x == blue_ghost.x && pacman.y == blue_ghost.y) ||
+        (pacman.x == green_ghost.x && pacman.y == green_ghost.y) ||
+        (pacman.x == yellow_ghost.x && pacman.y == yellow_ghost.y)) {
+        pacman.life--;
+        return 'M';
     }
 
-    // Move Ghost on map
-    if (id == 1) matriz[x][y] = 'R';
-    else if (id == 2) matriz[x][y] = 'B';
-    else if (id == 3) matriz[x][y] = 'G';
-    else matriz[x][y] = 'Y';
-    
-    matriz[c->x][c->y] = '0';
-    c->x = x;
-    c->y = y;
+    // verification to pallets
+    char item = map[pacman.x][pacman.y];
+    if (item >= '1' && item <= '6') {
+        map[pacman.x][pacman.y] = '0';
+        return item;
+    }
+    return '0';
 }
