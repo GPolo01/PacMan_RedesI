@@ -11,7 +11,7 @@ struct character blue_ghost;
 struct character green_ghost;
 struct character yellow_ghost;
 
-char matriz[SIZE][SIZE];
+char matrix[SIZE][SIZE];
 
 /* funções:
     cria e fica recarregando mapa(40x40) csv;
@@ -34,7 +34,7 @@ void random_position(struct character *c) {
     do {
         i = rand() % SIZE;
         j = rand() % SIZE;
-    } while (matriz[i][j] != '0');
+    } while (matrix[i][j] != '0');
 
     c->x = i;
     c->y = j;
@@ -47,9 +47,9 @@ void spawn_pallet(char item) {
     do {
         i = rand() % SIZE;
         j = rand() % SIZE;
-    } while (matriz[i][j] != '0');
+    } while (matrix[i][j] != '0');
     
-    matriz[i][j] = item;
+    matrix[i][j] = item;
 }
 
 // Processes PacMan's movement requested by the client
@@ -67,7 +67,7 @@ void pacman_movement(MsgType mov_type) {
 
     // Bounds and wall checking
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return;
-    if (matriz[x][y] == 'X') return;
+    if (matrix[x][y] == 'X') return;
 
     // Update localization
     pacman.x = x;
@@ -91,7 +91,7 @@ void ghosts_movement(struct character *c, int id){
     int y = c->y + dir_y[direction];
 
     // If it okay to go(not a wall), just go
-    if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matriz[x][y] != 'X') {
+    if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matrix[x][y] != 'X') {
         c->x = x;
         c->y = y;
         return; 
@@ -122,7 +122,7 @@ void ghosts_movement(struct character *c, int id){
         x = c->x + dir_x[c->direction];
         y = c->y + dir_y[c->direction];
 
-        if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matriz[x][y] != 'X') {
+        if (x >= 0 && x < SIZE && y >= 0 && y < SIZE && matrix[x][y] != 'X') {
             c->x = x;
             c->y = y;
             return;
@@ -144,9 +144,9 @@ char check_collisions() {
     }
 
     // verification to pallets
-    char item = matriz[pacman.x][pacman.y];
+    char item = matrix[pacman.x][pacman.y];
     if (item >= '1' && item <= '6') {
-        matriz[pacman.x][pacman.y] = '0';
+        matrix[pacman.x][pacman.y] = '0';
         return item;
     }
     return '0';

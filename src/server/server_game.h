@@ -24,7 +24,7 @@ extern struct character blue_ghost;
 extern struct character green_ghost;
 extern struct character yellow_ghost;
 
-extern char matriz[SIZE][SIZE];
+extern char matrix[SIZE][SIZE];
 
 void random_position(struct character *c);
 void spawn_pallet(char item);

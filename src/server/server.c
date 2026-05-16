@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     int sock_server = create_raw_socket(argv[1]);
     srand(time(NULL));
 
-    load_map(matriz, "maze.csv");
+    load_map("maze.csv");
     pacman.life = 3;
 
     random_position(&pacman);
@@ -47,20 +47,19 @@ int main(int argc, char **argv) {
         read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
 
         if( read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec) == 0) {
-            printf("type received: %d\n", type_rec);
             
             if (type_rec == MSG_INIT) {
                 printf("Connected to client! Sending initial map vision.\n");
                 round_num = 0;
+                render_server_matrix(matrix);
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
                 server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
             else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                 round_num++;
-                printf("Round %d\n", round_num);
                 
-                if (round_num % 5 == 0) vision_range++;
+                if (round_num % 5 == 0 && vision_range < 19) vision_range++;
 
                 pacman_movement(type_rec);
                 ghosts_movement(&red_ghost, 1);
@@ -70,6 +69,8 @@ int main(int argc, char **argv) {
 
                 char action = check_collisions();
 
+                render_server_matrix(matrix);
+
                 if (action >= '1' && action <= '6') {
                     printf("PACMAN COMEU O ARQUIVO %c!\n", action);
                     // Dispara a janela deslizante enviando o prêmio
@@ -78,14 +79,11 @@ int main(int argc, char **argv) {
                     // Encerra a partida e manda vídeo de Game Over
                 }
 
-                render_server_matrix(matriz);
-
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
 
                 //enviamos nova visualizacaoo do mapa
                 server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
-                printf("Map sended\n");
             }
         }
     }

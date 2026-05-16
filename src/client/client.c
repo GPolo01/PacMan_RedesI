@@ -2,7 +2,6 @@
 #include "../common/protocol.h"
 #include "client_net.h"
 #include "client_ui.h"
-#include "client_input.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -21,8 +20,8 @@ int main(int argc, char **argv) {
     unsigned char len_received, data_received[MAX_DATA_LEN], full_vision[2000];
     int full_len = 0;
 
-    show_startup_message(argv[1]);
-    show_message("Sending INIT message...");
+    printf("Client started on interface %s. Connecting to server...\n", argv[1]);
+    printf("Sending INIT message...\n");
 
     int success = send_and_wait(sock_client, &seq_num, MSG_INIT, data_received, &len_received, &type_received);
 
@@ -39,7 +38,7 @@ int main(int argc, char **argv) {
 
     while (1) {
         MsgType movement_type = get_user_movement();
-        show_message("Sending movement command...");
+        printf("Sending movement command...\n");
 
         // This function blocks until a valid response is received, handling timeouts internally
         success = send_and_wait(sock_client, &seq_num, movement_type, data_received, &len_received, &type_received);
@@ -52,12 +51,12 @@ int main(int argc, char **argv) {
                 render_map(full_vision, full_len);
             }
             else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
-                show_message("\n>>> We found a dot! Receiving file...");
+                printf("\n>>> We found a dot! Receiving file...\n");
                 receive_file(sock_client, &seq_num, type_received, data_received, len_received);
-                show_message("\nPress any movement key to continue...");
+                printf("\nPress any movement key to continue...\n");
             }
             else if (type_received == MSG_ERROR) {
-                show_error("Server reported an error in transmission.");
+                printf("ERROR: Server reported an error in transmission.\n");
             }
         }
     }
