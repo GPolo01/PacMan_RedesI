@@ -3,7 +3,7 @@
 
 #include "../common/protocol.h"
 
-#define SIZE 10
+#define SIZE 40
 
 struct character {
     char left_right_sense; //Only for the green ghost (0-right,1-left)
