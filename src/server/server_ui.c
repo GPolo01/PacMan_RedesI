@@ -91,7 +91,7 @@ int get_new_vision(unsigned char *out_buffer, int range) {
                 if (character != '\0') {
                     out_buffer[written_bytes] = character;
                 } else {
-                    out_buffer[written_bytes] = map[i][j];
+                    out_buffer[written_bytes] = matriz[i][j];
                 }
             }
             written_bytes++;

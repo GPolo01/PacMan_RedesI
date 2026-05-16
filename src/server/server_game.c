@@ -11,7 +11,7 @@ struct character blue_ghost;
 struct character green_ghost;
 struct character yellow_ghost;
 
-char map[SIZE][SIZE];
+char matriz[SIZE][SIZE];
 
 /* funções:
     cria e fica recarregando mapa(40x40) csv;
@@ -29,7 +29,7 @@ char map[SIZE][SIZE];
 */
 
 // Spawns a character at a random empty ('0') position
-void random_position(char matriz[SIZE][SIZE], struct character *c) {
+void random_position(struct character *c) {
     int i, j;
     do {
         i = rand() % SIZE;
@@ -40,6 +40,16 @@ void random_position(char matriz[SIZE][SIZE], struct character *c) {
     c->y = j;
     c->direction = 0; // All start facing UP 
     c->left_right_sense = '0'; //only important to Green Ghost
+}
+
+void spawn_pallet(char item) {
+    int i, j;
+    do {
+        i = rand() % SIZE;
+        j = rand() % SIZE;
+    } while (matriz[i][j] != '0');
+    
+    matriz[i][j] = item;
 }
 
 // Processes PacMan's movement requested by the client
@@ -57,7 +67,7 @@ void pacman_movement(MsgType mov_type) {
 
     // Bounds and wall checking
     if (x < 0 || x >= SIZE || y < 0 || y >= SIZE) return;
-    if (map[x][y] == 'X') return;
+    if (matriz[x][y] == 'X') return;
 
     // Update localization
     pacman.x = x;
@@ -75,7 +85,7 @@ void pacman_movement(MsgType mov_type) {
 // Replacement of switch for 2 vetors
 int dir_x[4] = {-1, 0, 1, 0};
 int dir_y[4] = {0, 1, 0, -1};
-void ghosts_movement(char matriz[SIZE][SIZE], struct character *c, int id){
+void ghosts_movement(struct character *c, int id){
     int direction = c->direction;
     int x = c->x + dir_x[direction];
     int y = c->y + dir_y[direction];
@@ -134,9 +144,9 @@ char check_collisions() {
     }
 
     // verification to pallets
-    char item = map[pacman.x][pacman.y];
+    char item = matriz[pacman.x][pacman.y];
     if (item >= '1' && item <= '6') {
-        map[pacman.x][pacman.y] = '0';
+        matriz[pacman.x][pacman.y] = '0';
         return item;
     }
     return '0';

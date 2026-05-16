@@ -19,14 +19,22 @@ int main(int argc, char **argv) {
     int sock_server = create_raw_socket(argv[1]);
     srand(time(NULL));
 
-    load_map(map, "maze.csv");
+    load_map(matriz, "maze.csv");
     pacman.life = 3;
 
-    random_position(map, &pacman);
-    random_position(map, &red_ghost);
-    random_position(map, &green_ghost);
-    random_position(map, &blue_ghost);
-    random_position(map, &yellow_ghost);
+    random_position(&pacman);
+    random_position(&red_ghost);
+    random_position(&green_ghost);
+    random_position(&blue_ghost);
+    random_position(&yellow_ghost);
+
+    // The pallets position randomly
+    spawn_pallet('1');
+    spawn_pallet('2');
+    spawn_pallet('3');
+    spawn_pallet('4');
+    spawn_pallet('5');
+    spawn_pallet('6');
 
     unsigned char seq_rec, len_rec, server_seq = 0;
     int read_bytes;
@@ -55,10 +63,10 @@ int main(int argc, char **argv) {
                 if (round_num % 5 == 0) vision_range++;
 
                 pacman_movement(type_rec);
-                ghosts_movement(map, &red_ghost, 1);
-                ghosts_movement(map, &blue_ghost, 2);
-                ghosts_movement(map, &green_ghost, 3);
-                ghosts_movement(map, &yellow_ghost, 4);
+                ghosts_movement(&red_ghost, 1);
+                ghosts_movement(&blue_ghost, 2);
+                ghosts_movement(&green_ghost, 3);
+                ghosts_movement(&yellow_ghost, 4);
 
                 char action = check_collisions();
 
@@ -70,7 +78,7 @@ int main(int argc, char **argv) {
                     // Encerra a partida e manda vídeo de Game Over
                 }
 
-                render_server_matrix(map);
+                render_server_matrix(matriz);
 
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
