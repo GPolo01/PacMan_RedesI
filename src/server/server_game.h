@@ -24,11 +24,12 @@ extern struct character blue_ghost;
 extern struct character green_ghost;
 extern struct character yellow_ghost;
 
-extern char map[SIZE][SIZE];
+extern char matrix[SIZE][SIZE];
 
-void random_position(char matriz[SIZE][SIZE], struct character *c);
+void random_position(struct character *c);
+void spawn_pallet(char item);
 void pacman_movement(MsgType mov_type);
-void ghosts_movement(char matriz[SIZE][SIZE], struct character *c, int id);
+void ghosts_movement(struct character *c, int id);
 char check_collisions();
 
 #endif
