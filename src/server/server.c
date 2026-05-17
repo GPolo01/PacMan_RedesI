@@ -89,7 +89,6 @@ int main(int argc, char **argv) {
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
 
-                //enviamos nova visualizacaoo do mapa
                 server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
         }
