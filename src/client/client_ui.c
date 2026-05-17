@@ -12,7 +12,7 @@
 #define COLOR_GHOST_B "\x1b[36m" // Cyan 
 #define COLOR_GHOST_Y "\x1b[33m" // Yellow
 #define COLOR_EMPTY   "\x1b[90m" // Dark Gray
-#define COLOR_DOT     "\x1b[35m" // Magenta 
+#define COLOR_DOT     "\x1b[37m" // Magenta 
 
 // Prints a single character with its corresponding color
 void print_colored_char(unsigned char c) {
