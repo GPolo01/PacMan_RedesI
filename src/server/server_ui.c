@@ -62,37 +62,54 @@ void load_map(const char *filename) {
                 }
             }
         }
-        //Drawing the letters UFPR aligned 
-        for (int i = 15; i <= 24; i++) {
-            matrix[i][10] = 'X';
-            matrix[i][13] = 'X';
+        //Drawing the letters UFPR aligned
+        // --- Letra U (Colunas 3 a 8)
+        for (int i = 10; i <= 28; i++) {
+            matrix[i][3] = 'X';  
+            matrix[i][8] = 'X';  
         }
-        for (int j = 11; j <= 12; j++) matrix[24][j] = 'X';
-
-        for (int i = 15; i <= 24; i++) matrix[i][15] = 'X';
-        for (int j = 15; j <= 18; j++) {
-            matrix [15][j] = 'X';
-            matrix [19][j] = 'X';
+        for (int j = 4; j <= 7; j++) {
+            matrix[29][j] = 'X'; 
         }
 
-        for (int i = 15; i <= 24; i++) matrix[i][20] = 'X';
-        for (int i = 15; i <= 19; i++) matrix[20][26] = 'X';
-        for (int j = 20; j <= 23; j++) {
-            matrix[15][j] = 'X';
-            matrix[19][j] = 'X';
+        // --- Letra F (Colunas 12 a 17) ---
+        for (int i = 10; i <= 29; i++) matrix[i][12] = 'X'; 
+        for (int j = 13; j <= 17; j++) matrix[10][j] = 'X'; 
+        for (int j = 13; j <= 16; j++) matrix[19][j] = 'X'; 
+
+        // --- Letra P (Colunas 21 a 26) ---
+        for (int i = 10; i <= 29; i++) matrix[i][21] = 'X'; 
+        for (int j = 22; j <= 25; j++) {
+            matrix[10][j] = 'X'; 
+            matrix[19][j] = 'X'; 
+        }
+        for (int i = 11; i <= 18; i++) matrix[i][26] = 'X';
+        for (int i = 11; i <= 18; i++) {
+            for (int j = 22; j <= 25; j++) {
+            matrix[i][j] = 'X';
+            }
         }
 
-        for (int i = 15; i <= 24; i++) matrix[i][20] = 'X';
-        for (int i = 15; i <= 19; i++) matrix [i][28] = 'X';
-        for (int j = 25; j <= 28; j++) {
-            matrix[15][j] = 'X';
-            matrix[19][j] = 'X';
+        // --- Letra R (Colunas 30 a 35) ---
+        for (int i = 10; i <= 29; i++) matrix[i][30] = 'X';
+        for (int j = 31; j <= 34; j++) {
+            matrix[10][j] = 'X'; 
+            matrix[19][j] = 'X'; 
         }
-        matrix[20][26] = 'X';
-        matrix[21][26] = 'X';
-        matrix[22][27] = 'X';
-        matrix[23][28] = 'X';
-        matrix[24][28] = 'X';
+        for (int i = 11; i <= 18; i++) matrix[i][35] = 'X'; 
+        for (int i = 11; i <= 18; i++) {
+            for (int j = 31; j <= 34; j++) {
+                matrix[i][j] = 'X';
+            }
+        }
+
+        // Perna diagonal do R
+        for (int i = 20; i <= 29; i++) {
+            int col = 31 + (i - 20) / 2; 
+            if (col <= 35) {
+                matrix[i][col] = 'X';
+            }
+        }
 
         return;
     }

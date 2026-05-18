@@ -95,9 +95,18 @@ int main(int argc, char **argv) {
                     printf("Sending file %s to client...\n", filepath);
                     int success = server_send_file(sock_server, &server_seq, file_type, filepath);
                     if (success) printf("Transmission completed!\n");
+                    if (pallets == 6) {
+                        printf("ALL PALLETS COLLECTED! YOU WIN!\n");
+                        server_send(sock_server, &server_seq, MSG_END, NULL, 0);
+                    }
                     continue; // Temporário.
                 } else if (action == 'M') {
-                    printf("PACMAN DIED!\n");
+                    printf("PACMAN LOST ONE LIFE!\n");
+                    if (pacman.life == 0) {
+                        printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
+                        server_send(sock_server, &server_seq, MSG_END, NULL, 0);
+                        continue;
+                    }
                 }
 
                 unsigned char fog_data[2000];

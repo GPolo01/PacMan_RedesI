@@ -17,6 +17,7 @@ struct character {
 
 extern unsigned char round_num;
 extern int vision_range;
+extern int pallets;
 
 extern struct character pacman;
 extern struct character red_ghost;

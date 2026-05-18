@@ -4,6 +4,7 @@
 
 unsigned char round_num = 0;
 int vision_range = 1;
+int pallets = 0;
 
 struct character pacman;
 struct character red_ghost;
@@ -13,7 +14,7 @@ struct character yellow_ghost;
 
 char matrix[SIZE][SIZE];
 
-/* funções:
+/* functions:
     cria e fica recarregando mapa(40x40) csv;
     P - PacMan; X - parede; 0 - posicao vazia;
     1 a 6 - os arquivos 2 txt, 2 jpg, 2 mp4; 
@@ -147,6 +148,7 @@ char check_collisions() {
     char item = matrix[pacman.x][pacman.y];
     if (item >= '1' && item <= '6') {
         matrix[pacman.x][pacman.y] = '0';
+        pallets++;
         return item;
     }
     return '0';
