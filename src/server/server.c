@@ -61,7 +61,7 @@ int main(int argc, char **argv) {
                 render_server_matrix(matrix);
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
-                server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
             else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                 round_num++;
@@ -79,17 +79,31 @@ int main(int argc, char **argv) {
                 render_server_matrix(matrix);
 
                 if (action >= '1' && action <= '6') {
-                    printf("PACMAN COMEU O ARQUIVO %c!\n", action);
-                    // Dispara a janela deslizante enviando o prêmio
+                    printf("PACMAN ATE PALLET %c!\n", action);
+
+                    MsgType file_type;
+                    char filepath[256];
+
+                    switch (action) {
+                        case '1': file_type = MSG_TXT; strcpy(filepath, "../pallets/1.txt"); break;
+                        case '2': file_type = MSG_TXT; strcpy(filepath, "../pallets/2.txt"); break;
+                        case '3': file_type = MSG_JPG; strcpy(filepath, "../pallets/3.jpg"); break;
+                        case '4': file_type = MSG_JPG; strcpy(filepath, "../pallets/4.jpg"); break;
+                        case '5': file_type = MSG_MP4; strcpy(filepath, "../pallets/5.mp4"); break;
+                        case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
+                    }
+                    printf("Sending file %s to client...\n", filepath);
+                    int success = server_send_file(sock_server, &server_seq, file_type, filepath);
+                    if (success) printf("Transmission completed!\n");
+                    continue; // Temporário.
                 } else if (action == 'M') {
-                    printf("PACMAN MORREU!\n");
-                    // Encerra a partida e manda vídeo de Game Over
+                    printf("PACMAN DIED!\n");
                 }
 
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
 
-                server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
         }
     }
