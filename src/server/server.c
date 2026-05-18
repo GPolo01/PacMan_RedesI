@@ -35,6 +35,12 @@ int main(int argc, char **argv) {
     spawn_pallet('4');
     spawn_pallet('5');
     spawn_pallet('6');
+    
+    FILE *log_file = fopen("server.log", "w");
+    if (log_file) {
+        fprintf(log_file, "--- SERVER LOG STARTED ---\n");
+        fclose(log_file);
+    }
 
     unsigned char seq_rec, len_rec, server_seq = 0;
     int read_bytes;
@@ -47,6 +53,7 @@ int main(int argc, char **argv) {
         read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
 
         if( read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec) == 0) {
+            log_message("RECV", seq_rec, type_rec, len_rec);
             
             if (type_rec == MSG_INIT) {
                 printf("Connected to client! Sending initial map vision.\n");
@@ -82,7 +89,6 @@ int main(int argc, char **argv) {
                 unsigned char fog_data[2000];
                 int vision_size = get_new_vision(fog_data, vision_range);
 
-                //enviamos nova visualizacaoo do mapa
                 server_send_stream(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
         }

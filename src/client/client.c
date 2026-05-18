@@ -38,15 +38,12 @@ int main(int argc, char **argv) {
 
     while (1) {
         MsgType movement_type = get_user_movement();
-        printf("Sending movement command...\n");
 
         // This function blocks until a valid response is received, handling timeouts internally
         success = send_and_wait(sock_client, &seq_num, movement_type, data_received, &len_received, &type_received);
         
         if (success) {
-            printf("type received: %d\n", type_received);
             if (type_received == MSG_VISION) {
-                sleep(1); // Simulate processing time
                 recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
                 render_map(full_vision, full_len);
             }

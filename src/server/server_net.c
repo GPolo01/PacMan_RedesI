@@ -6,6 +6,35 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <time.h>
+
+const char* get_msg_type_name(MsgType type) {
+    switch (type) {
+        case MSG_INIT: return "MSG_INIT";
+        case MSG_ACK: return "MSG_ACK";
+        case MSG_NACK: return "MSG_NACK";
+        case MSG_VISION: return "MSG_VISION";
+        case MSG_MOV_UP: return "MSG_MOV_UP";
+        case MSG_MOV_DOWN: return "MSG_MOV_DOWN";
+        case MSG_MOV_RIGHT: return "MSG_MOV_RIGHT";
+        case MSG_MOV_LEFT: return "MSG_MOV_LEFT";
+        case MSG_TXT: return "MSG_TXT";
+        case MSG_JPG: return "MSG_JPG";
+        case MSG_MP4: return "MSG_MP4";
+        case MSG_DATA: return "MSG_DATA";
+        case MSG_END: return "MSG_END";
+        case MSG_ERROR: return "MSG_ERROR";
+        default: return "UNKNOWN";
+    }
+}
+
+void log_message(const char *direction, unsigned char seq, MsgType type, int len) {
+    FILE *log_file = fopen("server.log", "a");
+    if (log_file) {
+        fprintf(log_file, "[%lds] [%s] SEQ: %u | TYPE: %s | LEN: %d\n", (long)time(NULL), direction, seq, get_msg_type_name(type), len);
+        fclose(log_file);
+    }
+}
 
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
                 unsigned char *data, unsigned char len) {
@@ -20,6 +49,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
     
     while(1) {
         send(sockfd, sending_frame, frame_size, 0);
+        log_message("SEND", *seq_num, type, len);
 
         // It goes to 18 quintillion
         unsigned long begin = get_timestamp_ms();
@@ -29,6 +59,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
 
             if (read_bytes > 0) {
                 if (unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, NULL, &rec_len) == 0) {
+                    log_message("RECV", rec_seq, rec_type, rec_len);
                     if (rec_seq == *seq_num) {
                         // Retransmission
                         if (rec_type == MSG_NACK) {

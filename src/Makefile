@@ -38,6 +38,11 @@ $(SERVER_BIN): $(SERVER_OBJ) $(COMMON_OBJ)
 
 # Limpeza dos arquivos compilados
 clean:
-	rm -f $(COMMON_DIR)/*.o $(CLIENT_DIR)/*.o $(SERVER_DIR)/*.o $(CLIENT_BIN) $(SERVER_BIN)
+	rm -f $(COMMON_DIR)/*.o $(CLIENT_DIR)/*.o $(SERVER_DIR)/*.o $(CLIENT_BIN) $(SERVER_BIN) server.log
 
-.PHONY: all clean
+# Abre um novo terminal para acompanhar o log do servidor
+log:
+	touch server.log
+	gnome-terminal -- bash -c "tail -f server.log" &
+
+.PHONY: all clean log
