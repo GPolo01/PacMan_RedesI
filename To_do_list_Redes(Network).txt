@@ -1,7 +1,5 @@
 To-do list:
-1. Verificação de WIN Game
-2. Arrumar Mapa UFPR - Completar ufpr e aumentar
-3. verificação do byte que muda precisando de uma verificação extra + Visão pós envio arquivo.
-4. Testes de desconexão de cabos durante funcionamento do programa.
-5. Server_net.c:
+1. verificação do byte que muda precisando de uma verificação extra + Visão pós envio arquivo.
+2. Testes de desconexão de cabos durante funcionamento do programa.
+3. Server_net.c:
 	Implementação da Janela Deslizante.
