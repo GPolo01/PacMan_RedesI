@@ -56,9 +56,9 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
                  const unsigned char *initial_data, unsigned char initial_len) {
     char filepath[128];
 
-    if (file_type == MSG_TXT) strcpy(filepath, "dots/file.txt");
-    else if (file_type == MSG_JPG) strcpy(filepath, "dots/file.jpg");
-    else if (file_type == MSG_MP4) strcpy(filepath, "dots/file.mp4");
+    if (file_type == MSG_TXT) strcpy(filepath, "../dots/file.txt");
+    else if (file_type == MSG_JPG) strcpy(filepath, "../dots/file.jpg");
+    else if (file_type == MSG_MP4) strcpy(filepath, "../dots/file.mp4");
     else return 0;
 
     FILE *file = fopen(filepath, "wb");

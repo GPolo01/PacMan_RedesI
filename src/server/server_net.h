@@ -10,7 +10,9 @@
 void log_message(const char *direction, unsigned char seq, MsgType type, int len);
 
 // Sends large payloads into 31-byte chunks and terminates with MSG_END
-int server_send_stream(int sockfd, unsigned char *seq_num, MsgType type, 
+int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, 
     unsigned char *data, int total_len);
+
+int server_send_file(int sockfd, unsigned char *seq_num, MsgType file_type, const char *filepath);
 
 #endif

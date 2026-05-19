@@ -80,7 +80,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
     }
 }
 
-int server_send_stream(int sockfd, unsigned char *seq_num, MsgType type, 
+int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, 
                        unsigned char *data, int total_len) {
     int bytes_sent = 0;
 
@@ -94,5 +94,28 @@ int server_send_stream(int sockfd, unsigned char *seq_num, MsgType type,
         bytes_sent += chunk_size;
     }
 
+    return server_send(sockfd, seq_num, MSG_END, NULL, 0);
+}
+
+int server_send_file(int sockfd, unsigned char *seq_num, MsgType type, const char *filepath) {
+    FILE *file = fopen(filepath, "rb");
+    if (!file) {
+        printf("ERROR: Could not open file %s for sending.\n", filepath);
+        return 0;
+    }
+
+    unsigned char buffer[MAX_DATA_LEN];
+    int bytes_read;
+    int is_first_chunk = 1;
+
+    while ((bytes_read = fread(buffer, 1, MAX_DATA_LEN, file)) > 0) {
+        
+        MsgType real_type = is_first_chunk ? type : MSG_DATA;
+        server_send(sockfd, seq_num, real_type, buffer, bytes_read);
+        is_first_chunk = 0;
+    }
+
+    fclose(file);
+    
     return server_send(sockfd, seq_num, MSG_END, NULL, 0);
 }

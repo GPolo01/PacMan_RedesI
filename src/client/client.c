@@ -55,6 +55,10 @@ int main(int argc, char **argv) {
             else if (type_received == MSG_ERROR) {
                 printf("ERROR: Server reported an error in transmission.\n");
             }
+            else if (type_received == MSG_END) {
+                printf("Game Over! Server has ended the game.\n");
+                break;
+            }
         }
     }
     close(sock_client);
