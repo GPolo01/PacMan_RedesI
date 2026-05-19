@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
                         case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
                     }
                     printf("Sending file %s to client...\n", filepath);
-                    int success = server_send_file(sock_server, &server_seq, file_type, filepath);
+                    int success = server_send_file(sock_server, &server_seq, file_type, filepath, action);
                     if (success) printf("Transmission completed!\n");
                     if (pallets == 6) {
                         printf("ALL PALLETS COLLECTED! YOU WIN!\n");
