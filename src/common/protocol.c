@@ -45,22 +45,36 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
     // Validation to prevent buffer overflow or malformed packets   
     if (len > MAX_DATA_LEN || type > 16 || seq > MAX_SEQ) return 0;
 
+    unsigned char temp_buf[64];
+
     // Byte 0: Frame Marker
-    buf[0] = FRAME_MARKER;
+    temp_buf[0] = FRAME_MARKER;
 
     // Byte 1: 5 bits for Length, 3 for Sequence
-    buf[1] = (unsigned char)(((len & 0x1F) << 3) | ((seq >> 3) & 0x07));
+    temp_buf[1] = (unsigned char)(((len & 0x1F) << 3) | ((seq >> 3) & 0x07));
     
     // Byte 2: 3 bits for Sequence, 5 for Type
-    buf[2] = (unsigned char)(((seq & 0x07) << 5) | (type & 0x1F));
+    temp_buf[2] = (unsigned char)(((seq & 0x07) << 5) | (type & 0x1F));
 
     // Payload
-    if (len > 0 && data != NULL) memcpy(buf + 3, data, len);
+    if (len > 0 && data != NULL) memcpy(temp_buf + 3, data, len);
 
     // Byte N: CRC
-    buf[3 + len] = crc(len, seq, (unsigned char)type, data);
+    temp_buf[3 + len] = crc(len, seq, (unsigned char)type, data);
     
     int total_frame_size = 4 + len; // Total frame size
+
+    int i,j;
+    for (i,j = 0 ; i < total_frame_size; i++, j++) {
+        buf[j] = temp_buf[i];
+
+        if (temp_buf[i] == 0x88 || temp_buf[i] == 0x81) {
+            buf[i + 1] = 0xff;
+            j++;
+        }
+    }
+    total_frame_size = j;
+    
     
 
     int MIN_FRAME_SIZE = 14; 
@@ -70,17 +84,39 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
         total_frame_size = MIN_FRAME_SIZE; 
     }
 
+    // VLAN verification
+    int i;
+    for (i = 0; i < total_frame_size - 3; i++) {
+        if (buf[i] == 0x81 || buf[i] == 0x88) break;
+    }
+    if (i < total_frame_size - 3) {
+        buf[i + 2] = 0xff;
+    }
+    
+
     return total_frame_size;
 }
 
 
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     MsgType *out_type, unsigned char *out_data, unsigned char *out_len) {
-    // At least 4 bytes (Marker + Header + Header + CRC)
+    // At least 4 bytes (Marker + Header + Size + CRC)
     if (length < 4 || buf[0] != FRAME_MARKER) return MSG_ERROR;
+    
+    unsigned char temp_buf[64];
 
-    unsigned char b1 = buf[1];
-    unsigned char b2 = buf[2];
+    int i,j;
+    for (i,j = 0; i < length; i++, j++) {
+        temp_buf[j] = buf[i];
+
+        if (buf[i] == 0x81 || buf[i] == 0x88) {
+            i++;
+        }
+    }
+    length = j;
+    
+    unsigned char b1 = temp_buf[1];
+    unsigned char b2 = temp_buf[2];
 
     // Extracting bits
     unsigned char len = (b1 >> 3) & 0x1F;
@@ -90,15 +126,15 @@ int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     // Ensure the buffer contains the full length
     if (length < 4 + len) return -1;
 
-    unsigned char received_crc = buf[3 + len];
-    unsigned char calculated_crc = crc(len, seq, type, buf + 3);
+    unsigned char received_crc = temp_buf[3 + len];
+    unsigned char calculated_crc = crc(len, seq, type, temp_buf + 3);
 
     if (calculated_crc != received_crc) return -1; // Data corrupted
 
     *out_len = len;
     *out_seq = seq;
     *out_type = (MsgType)type;
-    if (len > 0 && out_data != NULL) memcpy(out_data, buf + 3, len);
+    if (len > 0 && out_data != NULL) memcpy(out_data, temp_buf + 3, len);
 
     return 0; // Success
 }

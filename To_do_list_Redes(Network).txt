@@ -1,5 +1,9 @@
 To-do list:
 1. verificação do byte que muda precisando de uma verificação extra + Visão pós envio arquivo.
 2. Testes de desconexão de cabos durante funcionamento do programa.
+4. Respawn e imagem de morto
 3. Server_net.c:
 	Implementação da Janela Deslizante.
+
+ Abrir files sem armazenar
+
