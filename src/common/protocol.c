@@ -64,8 +64,8 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
     
     int total_frame_size = 4 + len; // Total frame size
 
-    int i,j;
-    for (i,j = 0 ; i < total_frame_size; i++, j++) {
+    int i = 0,j = 0;
+    for (; i < total_frame_size; i++, j++) {
         buf[j] = temp_buf[i];
 
         if (temp_buf[i] == 0x88 || temp_buf[i] == 0x81) {
@@ -83,15 +83,6 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
         memset(buf + total_frame_size, 0, MIN_FRAME_SIZE - total_frame_size);
         total_frame_size = MIN_FRAME_SIZE; 
     }
-
-    // VLAN verification
-    int i;
-    for (i = 0; i < total_frame_size - 3; i++) {
-        if (buf[i] == 0x81 || buf[i] == 0x88) break;
-    }
-    if (i < total_frame_size - 3) {
-        buf[i + 2] = 0xff;
-    }
     
 
     return total_frame_size;
@@ -105,8 +96,8 @@ int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     
     unsigned char temp_buf[64];
 
-    int i,j;
-    for (i,j = 0; i < length; i++, j++) {
+    int i = 0,j = 0;
+    for (; i < length; i++, j++) {
         temp_buf[j] = buf[i];
 
         if (buf[i] == 0x81 || buf[i] == 0x88) {
