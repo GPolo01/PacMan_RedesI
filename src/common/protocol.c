@@ -69,7 +69,7 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
         buf[j] = temp_buf[i];
 
         if (temp_buf[i] == 0x88 || temp_buf[i] == 0x81) {
-            buf[i + 1] = 0xff;
+            buf[j + 1] = 0xff;
             j++;
         }
     }
