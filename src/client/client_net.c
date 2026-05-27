@@ -75,11 +75,9 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
     unsigned char rec_seq, rec_len, ack_frame[64], buffer_rec[256], data_rec[MAX_DATA_LEN];
     MsgType rec_type;
 
-    // Aqui entramos em um loop recebendo MSG_DADOS e respondendo com MSG_ACK
     while (1) {
         int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
         if (read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len) == 0) {
-            // testar +1 ou sem +1
             if (rec_seq == *seq_num) {
                 if (rec_type == MSG_DATA) {
                     fwrite(data_rec, 1, rec_len, file);
@@ -94,6 +92,10 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
+            } else if (rec_seq == (unsigned char)((*seq_num - 1 + 64) % 64)) {
+                // If the ack was lost, resend
+                int ack_size = pack_frame(rec_seq, MSG_ACK, NULL, 0, ack_frame);
+                send(sockfd, ack_frame, ack_size, 0);
             }
         }
     }
@@ -126,6 +128,10 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
+            } else if (rec_seq == (unsigned char)((*seq_num - 1 + 64) % 64)) {
+                // If the ack was lost, resend
+                int ack_size = pack_frame(rec_seq, MSG_ACK, NULL, 0, ack_frame);
+                send(sockfd, ack_frame, ack_size, 0);
             }
         }
     }
