@@ -2,6 +2,7 @@
 #include <termios.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <stdlib.h>
 
 // COLORS
 #define COLOR_RESET   "\x1b[0m"
@@ -97,4 +98,19 @@ void render_map(unsigned char *data, int len) {
     }
     printf("\nControls: W (Up), S (Down), A (Left), D (Right)\n");
     printf("Awaiting command...\n");
+}
+
+void handle_file_viewing(const char *filepath) {
+    char command[256];
+    snprintf(command, sizeof(command), "xdg-open %s 2>/dev/null", filepath);
+    
+    printf("\nOpening file %s...\n", filepath);
+    system(command);
+    
+    printf("\nPress ENTER when you have closed the file to delete it and update the maze...\n");
+    int ch;
+    while ((ch = getchar()) != '\n' && ch != EOF);
+    
+    remove(filepath);
+    printf("File deleted.\n");
 }

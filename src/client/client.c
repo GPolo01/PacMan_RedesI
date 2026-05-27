@@ -49,8 +49,24 @@ int main(int argc, char **argv) {
             }
             else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
                 printf("\n>>> We found a dot! Receiving file...\n");
-                receive_file(sock_client, &seq_num, type_received, data_received, len_received);
-                printf("\nPress any movement key to continue...\n");
+                
+                char filepath[128];
+                receive_file(sock_client, &seq_num, type_received, data_received, len_received, filepath);
+
+                // Recebe a visão logo em seguida para não deixar o servidor esperando e tomar timeout
+                int game_running = receive_next_vision(sock_client, &seq_num, full_vision, &full_len);
+                if (game_running) {
+                    render_map(full_vision, full_len);
+                }
+
+                // Com a rede livre e o mapa atualizado, pausa para o usuário ver o arquivo
+                handle_file_viewing(filepath);
+
+                if (!game_running) {
+                    printf("Game Over! Server has ended the game.\n");
+                    break;
+                }
+                render_map(full_vision, full_len);
             }
             else if (type_received == MSG_ERROR) {
                 printf("ERROR: Server reported an error in transmission.\n");

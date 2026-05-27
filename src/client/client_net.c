@@ -53,7 +53,7 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type,
 }
 
 int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, 
-                 const unsigned char *initial_data, unsigned char initial_len) {
+                 const unsigned char *initial_data, unsigned char initial_len, char *out_filepath) {
     char filepath[128];
     char action = (initial_len > 0) ? initial_data[0] : '0';
 
@@ -62,6 +62,10 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
         case MSG_JPG: sprintf(filepath, "../dots/%c.jpg", action); break;
         case MSG_MP4: sprintf(filepath, "../dots/%c.mp4", action); break;
         default: return 0; break;
+    }
+
+    if (out_filepath != NULL) {
+        strcpy(out_filepath, filepath);
     }
 
     FILE *file = fopen(filepath, "wb");
@@ -136,5 +140,40 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
         }
     }
     return 1;
+}
+
+int receive_next_vision(int sockfd, unsigned char *seq_num, unsigned char *full_vision, int *full_len) {
+    unsigned char buffer_rec[256], data_rec[MAX_DATA_LEN];
+    unsigned char rec_seq, rec_len;
+    MsgType rec_type;
+
+    // Disable the read timeout specifically to wait for the vision update
+    struct timeval timeout = { .tv_sec = 0, .tv_usec = 0 };
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
+
+    while (1) {
+        int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
+        if (read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len) == 0) {
+            if (rec_seq == *seq_num) {
+                if (rec_type == MSG_VISION) {
+                    unsigned char ack_frame[64];
+                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
+                    send(sockfd, ack_frame, ack_size, 0);
+                    *seq_num = (*seq_num + 1) % 64;
+                    return recive_vision(sockfd, seq_num, data_rec, rec_len, full_vision, full_len);
+                } else if (rec_type == MSG_END) {
+                    unsigned char ack_frame[64];
+                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
+                    send(sockfd, ack_frame, ack_size, 0);
+                    *seq_num = (*seq_num + 1) % 64;
+                    return 0;
+                }
+            } else if (rec_seq == (unsigned char)((*seq_num - 1 + 64) % 64)) {
+                unsigned char ack_frame[64];
+                int ack_size = pack_frame(rec_seq, MSG_ACK, NULL, 0, ack_frame);
+                send(sockfd, ack_frame, ack_size, 0);
+            }
+        }
+    }
 }
  
