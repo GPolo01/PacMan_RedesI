@@ -9,6 +9,8 @@
 // Logs the sent and received messages
 void log_message(const char *direction, unsigned char seq, MsgType type, int len);
 
+int corrupted_send(int sockfd, unsigned char *buf, int len, int flags);
+
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
                 unsigned char *data, unsigned char len);
 

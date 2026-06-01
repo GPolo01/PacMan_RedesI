@@ -9,6 +9,8 @@ struct character {
     char left_right_sense; //Only for the green ghost (0-right,1-left)
     int x;
     int y;
+    int old_x;
+    int old_y;
     int life;
     int direction;
 };

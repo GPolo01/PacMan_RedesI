@@ -6,6 +6,28 @@
 #include <unistd.h>
 #include <sys/time.h>
 
+int corrupted_send(int sockfd, unsigned char *buf, int len, int flags) {
+    int roll = rand() % 100;
+
+    // Simulate successful send but do nothing
+    if (roll < 10) {
+        printf("CORRUPTED SEND, TTPE DROPPED\n");
+        return len; 
+    } else if (roll < 20) {
+        printf("CORRUPTED SEND, TTPE HEADER WITH ERRORS\n");
+        buf[1] ^= 0xFF;
+        return send(sockfd, buf, len, flags);    
+    } else if (roll < 30) {
+        if (len > 4) {
+            printf("CORRUPTED SEND, TTPE DATA WITH ERRORS\n");
+            int random_byte = 3 + (rand() % (len - 4));
+            buf[random_byte] ^= 0xFF;
+        } else buf[len -1] ^= 0xFF;
+        return send(sockfd, buf, len, flags);
+    }
+    return send(sockfd, buf, len, flags);
+}
+
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, 
     unsigned char *out_data, unsigned char *out_len, MsgType *out_type) {
     

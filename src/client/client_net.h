@@ -6,6 +6,8 @@
 // Maximum wait thime for a server response
 #define TIMEOUT_MS 1000
 
+int corrupted_send(int sockfd, unsigned char *buf, int len, int flags);
+
 // Sends a movement message and waits for the server's response.
 // If a timeout or NACK occurs, it retransmits the original message.
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char *out_data, unsigned char *out_len, MsgType *out_type);
