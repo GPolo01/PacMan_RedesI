@@ -55,11 +55,14 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type,
 int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, 
                  const unsigned char *initial_data, unsigned char initial_len) {
     char filepath[128];
+    char action = (initial_len > 0) ? initial_data[0] : '0';
 
-    if (file_type == MSG_TXT) strcpy(filepath, "../dots/file.txt");
-    else if (file_type == MSG_JPG) strcpy(filepath, "../dots/file.jpg");
-    else if (file_type == MSG_MP4) strcpy(filepath, "../dots/file.mp4");
-    else return 0;
+    switch (file_type) {
+        case MSG_TXT: sprintf(filepath, "../dots/%c.txt", action); break;
+        case MSG_JPG: sprintf(filepath, "../dots/%c.jpg", action); break;
+        case MSG_MP4: sprintf(filepath, "../dots/%c.mp4", action); break;
+        default: return 0; break;
+    }
 
     FILE *file = fopen(filepath, "wb");
     if (!file) {
@@ -68,7 +71,6 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
     }
 
     printf("\nIniciating dowload of file %s\n", filepath);
-    if (initial_len > 0) fwrite(initial_data, 1, initial_len, file);
 
     unsigned char rec_seq, rec_len, ack_frame[64], buffer_rec[256], data_rec[MAX_DATA_LEN];
     MsgType rec_type;

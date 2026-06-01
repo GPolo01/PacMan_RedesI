@@ -97,7 +97,7 @@ int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type,
     return server_send(sockfd, seq_num, MSG_END, NULL, 0);
 }
 
-int server_send_file(int sockfd, unsigned char *seq_num, MsgType type, const char *filepath) {
+int server_send_file(int sockfd, unsigned char *seq_num, MsgType type, const char *filepath, int action) {
     FILE *file = fopen(filepath, "rb");
     if (!file) {
         printf("ERROR: Could not open file %s for sending.\n", filepath);
@@ -106,13 +106,11 @@ int server_send_file(int sockfd, unsigned char *seq_num, MsgType type, const cha
 
     unsigned char buffer[MAX_DATA_LEN];
     int bytes_read;
-    int is_first_chunk = 1;
+    unsigned char action_byte = (unsigned char)action;
+    server_send(sockfd, seq_num, type, &action_byte, 1);
 
     while ((bytes_read = fread(buffer, 1, MAX_DATA_LEN, file)) > 0) {
-        
-        MsgType real_type = is_first_chunk ? type : MSG_DATA;
-        server_send(sockfd, seq_num, real_type, buffer, bytes_read);
-        is_first_chunk = 0;
+        server_send(sockfd, seq_num, MSG_DATA, buffer, bytes_read);
     }
 
     fclose(file);
