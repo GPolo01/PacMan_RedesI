@@ -38,23 +38,36 @@ void log_message(const char *direction, unsigned char seq, MsgType type, int len
 
 int corrupted_send(int sockfd, unsigned char *buf, int len, int flags) {
     int roll = rand() % 100;
+    FILE *log_file = fopen("server.log", "a");
 
     // Simulate successful send but do nothing
     if (roll < 10) {
-        printf("CORRUPTED SEND, TTPE DROPPED\n");
+        if (log_file) {
+            fprintf(log_file, "[%lds] [CORRUPTED] TYPE DROPPED\n", (long)time(NULL));
+            fclose(log_file);
+        }
         return len; 
     } else if (roll < 20) {
-        printf("CORRUPTED SEND, TTPE HEADER WITH ERRORS\n");
+        if (log_file) {
+            fprintf(log_file, "[%lds] [CORRUPTED] TYPE HEADER WITH ERRORS\n", (long)time(NULL));
+            fclose(log_file);
+        }
         buf[1] ^= 0xFF;
         return send(sockfd, buf, len, flags);    
     } else if (roll < 30) {
+        if (log_file) {
+            fprintf(log_file, "[%lds] [CORRUPTED] TYPE DATA WITH ERRORS\n", (long)time(NULL));
+            fclose(log_file);
+        }
         if (len > 4) {
-            printf("CORRUPTED SEND, TTPE DATA WITH ERRORS\n");
             int random_byte = 3 + (rand() % (len - 4));
             buf[random_byte] ^= 0xFF;
-        } else buf[len -1] ^= 0xFF;
+        } else {
+            buf[len -1] ^= 0xFF;
+        }
         return send(sockfd, buf, len, flags);
     }
+    if (log_file) fclose(log_file);
     return send(sockfd, buf, len, flags);
 }
 
@@ -71,7 +84,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
     
     while(1) {
-        send(sockfd, sending_frame, frame_size, 0);
+        corrupted_send(sockfd, sending_frame, frame_size, 0);
         log_message("SEND", *seq_num, type, len);
 
         // It goes to 18 quintillion

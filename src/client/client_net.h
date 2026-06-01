@@ -6,6 +6,9 @@
 // Maximum wait thime for a server response
 #define TIMEOUT_MS 1000
 
+// Logs the sent and received messages
+void log_message(const char *direction, unsigned char seq, MsgType type, int len);
+
 int corrupted_send(int sockfd, unsigned char *buf, int len, int flags);
 
 // Sends a movement message and waits for the server's response.

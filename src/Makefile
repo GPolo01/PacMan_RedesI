@@ -38,7 +38,7 @@ $(SERVER_BIN): $(SERVER_OBJ) $(COMMON_OBJ)
 
 # Limpeza dos arquivos compilados
 clean:
-	rm -f $(COMMON_DIR)/*.o $(CLIENT_DIR)/*.o $(SERVER_DIR)/*.o $(CLIENT_BIN) $(SERVER_BIN) server.log
+	rm -f $(COMMON_DIR)/*.o $(CLIENT_DIR)/*.o $(SERVER_DIR)/*.o $(CLIENT_BIN) $(SERVER_BIN) *.log ../.bashrc
 
 # Abre um novo terminal para acompanhar o log do servidor
 log:

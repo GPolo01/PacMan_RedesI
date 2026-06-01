@@ -20,6 +20,12 @@ int main(int argc, char **argv) {
     unsigned char len_received, data_received[MAX_DATA_LEN], full_vision[2000];
     int full_len = 0;
 
+    FILE *log_file = fopen("client.log", "w");
+    if (log_file) {
+        fprintf(log_file, "--- CLIENT LOG STARTED ---\n");
+        fclose(log_file);
+    }
+
     printf("Client started on interface %s. Connecting to server...\n", argv[1]);
     printf("Sending INIT message...\n");
 
