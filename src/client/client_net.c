@@ -207,6 +207,9 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
+            } else if (rec_seq == (*seq_num + 63) % 64) {
+                // Duplicate packet from previous sequence, re-send ACK
+                send_once(sockfd, rec_seq, MSG_ACK, NULL, 0);
             }
         }
         else if (read_bytes > 0 && unpack_status == -1) {
