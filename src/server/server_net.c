@@ -3,6 +3,7 @@
 #include "../common/protocol.h"
 #include <sys/socket.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -37,6 +38,10 @@ void log_message(const char *direction, unsigned char seq, MsgType type, int len
 }
 
 int corrupted_send(int sockfd, unsigned char *buf, int len, int flags) {
+    unsigned char temp_buf[256];
+    if (len > 256) len = 256;
+    memcpy(temp_buf, buf, len);
+
     int roll = rand() % 100;
     FILE *log_file = fopen("server.log", "a");
 
@@ -52,8 +57,8 @@ int corrupted_send(int sockfd, unsigned char *buf, int len, int flags) {
             fprintf(log_file, "[%lds] [CORRUPTED] TYPE HEADER WITH ERRORS\n", (long)time(NULL));
             fclose(log_file);
         }
-        buf[1] ^= 0xFF;
-        return send(sockfd, buf, len, flags);    
+        temp_buf[1] ^= 0xFF;
+        return send(sockfd, temp_buf, len, flags);    
     } else if (roll < 30) {
         if (log_file) {
             fprintf(log_file, "[%lds] [CORRUPTED] TYPE DATA WITH ERRORS\n", (long)time(NULL));
@@ -61,20 +66,27 @@ int corrupted_send(int sockfd, unsigned char *buf, int len, int flags) {
         }
         if (len > 4) {
             int random_byte = 3 + (rand() % (len - 4));
-            buf[random_byte] ^= 0xFF;
+            temp_buf[random_byte] ^= 0xFF;
         } else {
-            buf[len -1] ^= 0xFF;
+            temp_buf[len -1] ^= 0xFF;
         }
-        return send(sockfd, buf, len, flags);
+        return send(sockfd, temp_buf, len, flags);
     }
     if (log_file) fclose(log_file);
     return send(sockfd, buf, len, flags);
 }
 
+void send_once(int sockfd, unsigned char seq, MsgType type, unsigned char *data, unsigned char len) {
+    unsigned char frame[64];
+    int size = pack_frame(seq, type, data, len, frame);
+    log_message("SEND", seq, type, len);
+    corrupted_send(sockfd, frame, size, 0);
+}
 
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
                 unsigned char *data, unsigned char len) {
     
+    int read_bytes, unpack_status;
     MsgType rec_type;
     unsigned char rec_seq, rec_len, sending_frame[64], buffer_rec[256];
     
@@ -87,28 +99,27 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
         corrupted_send(sockfd, sending_frame, frame_size, 0);
         log_message("SEND", *seq_num, type, len);
 
-        // It goes to 18 quintillion
         unsigned long begin = get_timestamp_ms();
 
         do {
-            int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
+            read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
+            unpack_status = unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, NULL, &rec_len);
 
-            if (read_bytes > 0) {
-                if (unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, NULL, &rec_len) == 0) {
-                    log_message("RECV", rec_seq, rec_type, rec_len);
-                    if (rec_seq == *seq_num) {
-                        // Retransmission
-                        if (rec_type == MSG_NACK) {
-                            printf("NACK received. Begin retransmission");
-                            break;
-                        }
-
-                        if (rec_type == MSG_ACK) {
-                            *seq_num = (*seq_num + 1) % 64;
-                            return 1;
-                        }
+            if (read_bytes > 0 && unpack_status == 0) {
+                log_message("RECV", rec_seq, rec_type, rec_len);
+                if (rec_seq == *seq_num) {
+                    if (rec_type == MSG_NACK) {
+                        printf("NACK received. Begin retransmission\n");
+                        break;
+                    }
+                    if (rec_type == MSG_ACK) {
+                        *seq_num = (*seq_num + 1) % 64;
+                        return 1;
                     }
                 }
+            }
+            else if (read_bytes > 0 && unpack_status == -1) {
+                send_once(sockfd, *seq_num, MSG_NACK, NULL, 0);
             }
         } while (get_timestamp_ms() - begin <= TIMEOUT_MS);
 

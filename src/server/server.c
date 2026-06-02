@@ -43,7 +43,7 @@ int main(int argc, char **argv) {
     }
 
     unsigned char seq_rec, len_rec, server_seq = 0;
-    int read_bytes;
+    int read_bytes, unpack_status;
     MsgType type_rec;
     unsigned char buffer_rec[256], data_rec[2000];
     
@@ -51,8 +51,9 @@ int main(int argc, char **argv) {
 
     while (1) {
         read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
+        unpack_status = unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec);
 
-        if( read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec) == 0) {
+        if( read_bytes > 0 && unpack_status == 0) {
             log_message("RECV", seq_rec, type_rec, len_rec);
             
             if (type_rec == MSG_INIT) {
@@ -114,6 +115,9 @@ int main(int argc, char **argv) {
 
                 server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
             }
+        }
+        else if (read_bytes > 0 && unpack_status == -1) {
+            send_once(sock_server, server_seq, MSG_NACK, NULL, 0);
         }
     }
 

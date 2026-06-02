@@ -92,7 +92,7 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     MsgType *out_type, unsigned char *out_data, unsigned char *out_len) {
     // At least 4 bytes (Marker + Header + Size + CRC)
-    if (length < 4 || buf[0] != FRAME_MARKER) return MSG_ERROR;
+    if (length < 4 || buf[0] != FRAME_MARKER) return -1;
     
     unsigned char temp_buf[64];
 

@@ -4,12 +4,14 @@
 #include "../common/protocol.h"
 
 // Maximum wait thime for a server response
-#define TIMEOUT_MS 1000
+#define TIMEOUT_MS 5000
 
 // Logs the sent and received messages
 void log_message(const char *direction, unsigned char seq, MsgType type, int len);
 
 int corrupted_send(int sockfd, unsigned char *buf, int len, int flags);
+
+void send_once(int sockfd, unsigned char seq, MsgType type, unsigned char *data, unsigned char len);
 
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
                 unsigned char *data, unsigned char len);
