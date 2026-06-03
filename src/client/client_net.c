@@ -106,10 +106,11 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned
                 log_message("RECV", rec_seq, rec_type, rec_len);
                 // Don't proccess the msg u have sended (same type)
                 if (rec_seq == *seq_num && rec_type != mov_type) {
-                    if (rec_type == MSG_NACK) {
+                    if (rec_type == MSG_NACK ) {
                         printf("NACK received. Beginning retransmission...\n");
-                        break; // Break the DO-WHILE, triggers the outer WHILE to re-send
+                        break;
                     }
+                    if (rec_type == MSG_ACK ) return 0;
                     
                     // Sending ACK to server
                     send_once(sockfd, rec_seq, MSG_ACK, NULL, 0);

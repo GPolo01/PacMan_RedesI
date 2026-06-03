@@ -30,16 +30,14 @@ int main(int argc, char **argv) {
     printf("Sending INIT message...\n");
 
     int success = send_and_wait(sock_client, &seq_num, MSG_INIT, &len_received, &type_received);
+    recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
+    render_map(full_vision, full_len);
 
-    if (success && type_received == MSG_VISION) {
-        recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
-        render_map(full_vision, full_len);
-
-    } else {
+    /*} else {
         printf("Failed to initialize game with server.\n");
         close(sock_client);
         return -1;
-    }
+    }*/
 
 
     while (1) {
