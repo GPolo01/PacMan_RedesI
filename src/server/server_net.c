@@ -118,7 +118,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type,
                     }
                 }
             }
-            else if (read_bytes > 0 && unpack_status == -1) {
+            else if (read_bytes > 0 && unpack_status < -1) {
                 send_once(sockfd, *seq_num, MSG_NACK, NULL, 0);
             }
         } while (get_timestamp_ms() - begin <= TIMEOUT_MS);

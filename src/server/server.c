@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
                 send_once(sock_server, seq_rec, MSG_ACK, NULL, 0);
             }
         }
-        else if (read_bytes > 0 && unpack_status == -1) {
+        else if (read_bytes > 0 && unpack_status < -1) {
             send_once(sock_server, server_seq, MSG_NACK, NULL, 0);
         }
     }

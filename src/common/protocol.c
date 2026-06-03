@@ -92,7 +92,7 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data,
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     MsgType *out_type, unsigned char *out_data, unsigned char *out_len) {
     // At least 4 bytes (Marker + Header + Size + CRC)
-    if (length < 4 || buf[0] != FRAME_MARKER) return -1;
+    if (length < 4 || buf[0] != FRAME_MARKER) return NOT_MESSAGE;
     
     unsigned char temp_buf[64];
 
@@ -115,12 +115,12 @@ int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     unsigned char type = b2 & 0x1F;
 
     // Ensure the buffer contains the full length
-    if (length < 4 + len) return -1;
+    if (length < 4 + len) return NOT_LENGTH;
 
     unsigned char received_crc = temp_buf[3 + len];
     unsigned char calculated_crc = crc(len, seq, type, temp_buf + 3);
 
-    if (calculated_crc != received_crc) return -1; // Data corrupted
+    if (calculated_crc != received_crc) return NOT_CRC; // Data corrupted
 
     *out_len = len;
     *out_seq = seq;

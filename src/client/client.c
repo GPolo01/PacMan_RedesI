@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     printf("Client started on interface %s. Connecting to server...\n", argv[1]);
     printf("Sending INIT message...\n");
 
-    int success = send_and_wait(sock_client, &seq_num, MSG_INIT, data_received, &len_received, &type_received);
+    int success = send_and_wait(sock_client, &seq_num, MSG_INIT, &len_received, &type_received);
 
     if (success && type_received == MSG_VISION) {
         recive_vision(sock_client, &seq_num, data_received, len_received, full_vision, &full_len);
@@ -46,7 +46,7 @@ int main(int argc, char **argv) {
         MsgType movement_type = get_user_movement();
 
         // This function blocks until a valid response is received, handling timeouts internally
-        success = send_and_wait(sock_client, &seq_num, movement_type, data_received, &len_received, &type_received);
+        success = send_and_wait(sock_client, &seq_num, movement_type, &len_received, &type_received);
         
         if (success) {
             if (type_received == MSG_VISION) {

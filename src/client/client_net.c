@@ -82,8 +82,7 @@ void send_once(int sockfd, unsigned char seq, MsgType type, unsigned char *data,
     corrupted_send(sockfd, frame, size, 0);
 }
 
-int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, 
-    unsigned char *out_data, unsigned char *out_len, MsgType *out_type) {
+int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char *out_len, MsgType *out_type) {
     
     unsigned char sending_frame[64], buffer_rec[256];
     unsigned char rec_seq, rec_len;
@@ -121,7 +120,7 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type,
                     return 1;
                 }
             }
-            else if (read_bytes > 0 && unpack_status == -1) {
+            else if (read_bytes > 0 && unpack_status < -1) {
                 send_once(sockfd, *seq_num, MSG_NACK, NULL, 0);
             }
         } while (get_timestamp_ms() - begin <= TIMEOUT_MS);
@@ -156,7 +155,7 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
 
     // Aqui entramos em um loop recebendo MSG_DADOS e respondendo com MSG_ACK
     while (1) {
-        int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
+        read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
         unpack_status = unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len);
 
         if (read_bytes > 0 && unpack_status == 0) {
@@ -174,7 +173,7 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
                 }
             }
         }
-        else if (read_bytes > 0 && unpack_status == -1) {
+        else if (read_bytes > 0 && unpack_status < -1) {
             send_once(sockfd, *seq_num, MSG_NACK, NULL, 0);
         }
     }
@@ -212,7 +211,7 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
                 send_once(sockfd, rec_seq, MSG_ACK, NULL, 0);
             }
         }
-        else if (read_bytes > 0 && unpack_status == -1) {
+        else if (read_bytes > 0 && unpack_status < -1) {
             send_once(sockfd, *seq_num, MSG_NACK, NULL, 0);
         }
     }

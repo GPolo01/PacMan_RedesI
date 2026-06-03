@@ -20,6 +20,10 @@
 #define MAX_DATA_LEN 31
 #define MAX_SEQ 63
 
+#define NOT_MESSAGE -1
+#define NOT_LENGTH  -2
+#define NOT_CRC     -3
+
 /* Unused values: 8, 9, 14 */
 typedef enum {
     MSG_ACK = 0,
