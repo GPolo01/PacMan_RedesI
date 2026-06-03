@@ -3,16 +3,6 @@
 
 #include "../common/protocol.h"
 
-// Maximum wait thime for a server response
-#define TIMEOUT_MS 5000
-
-// Logs the sent and received messages
-void log_message(const char *direction, unsigned char seq, MsgType type, int len);
-
-int corrupted_send(int sockfd, unsigned char *buf, int len, int flags);
-
-void send_once(int sockfd, unsigned char seq, MsgType type, unsigned char *data, unsigned char len);
-
 // Sends a movement message and waits for the server's response.
 // If a timeout or NACK occurs, it retransmits the original message.
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char *out_len, MsgType *out_type);

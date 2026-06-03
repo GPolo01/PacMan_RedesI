@@ -42,22 +42,19 @@ int main(int argc, char **argv) {
         fclose(log_file);
     }
 
-    unsigned char seq_rec, len_rec, server_seq = 0;
-    unsigned char expected_client_seq = 0;
-    int read_bytes, unpack_status;
+    unsigned char seq_rec, len_rec, server_seq_tx = 0;
+    unsigned char server_seq_rx = 0;
     MsgType type_rec;
-    unsigned char buffer_rec[256], data_rec[2000];
+    unsigned char data_rec[2000];
     
     printf("Server initiated, waiting for client on interface %s...\n", argv[1]);
 
     while (1) {
-        read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
-        unpack_status = unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec);
+        // Utiliza o receptor centralizado que filtra ruídos e responde NACK em falha de CRC
+        int status = recv_frame_with_timeout(sock_server, &seq_rec, &type_rec, data_rec, &len_rec, 3600000, "server");
 
-        if( read_bytes > 0 && unpack_status == 0) {
-            log_message("RECV", seq_rec, type_rec, len_rec);
-            
-            if (seq_rec == expected_client_seq) {
+        if (status == 0) {
+            if (seq_rec == server_seq_rx) {
                 if (type_rec == MSG_INIT) {
                     printf("Connected to client! Sending initial map vision.\n");
                     round_num = 0;
@@ -65,12 +62,12 @@ int main(int argc, char **argv) {
                     unsigned char fog_data[2000];
                     int vision_size = get_new_vision(fog_data, vision_range);
                     
-                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0);
-                    expected_client_seq = (expected_client_seq + 1) % 64;
+                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    server_seq_rx = (server_seq_rx + 1) % 64;
 
-                    server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size);
                 }
-                else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
+                else if (type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                     round_num++;
                     
                     if (round_num % 5 == 0 && vision_range < 19) vision_range++;
@@ -85,8 +82,8 @@ int main(int argc, char **argv) {
 
                     render_server_matrix(matrix);
 
-                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0);
-                    expected_client_seq = (expected_client_seq + 1) % 64;
+                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    server_seq_rx = (server_seq_rx + 1) % 64;
 
                     if (action >= '1' && action <= '6') {
                         printf("PACMAN ATE PALLET %c!\n", action);
@@ -103,18 +100,18 @@ int main(int argc, char **argv) {
                             case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
                         }
                         printf("Sending file %s to client...\n", filepath);
-                        int success = server_send_file(sock_server, &server_seq, file_type, filepath, action);
+                        int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action);
                         if (success) printf("Transmission completed!\n");
                         if (pallets == 6) {
                             printf("ALL PALLETS COLLECTED! YOU WIN!\n");
-                            server_send(sock_server, &server_seq, MSG_END, NULL, 0);
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0);
                         }
                         continue; 
                     } else if (action == 'M') {
                         printf("PACMAN LOST ONE LIFE!\n");
                         if (pacman.life == 0) {
                             printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
-                            server_send(sock_server, &server_seq, MSG_END, NULL, 0);
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0);
                             continue;
                         }
                     }
@@ -122,15 +119,12 @@ int main(int argc, char **argv) {
                     unsigned char fog_data[2000];
                     int vision_size = get_new_vision(fog_data, vision_range);
 
-                    server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size);
                 }
-            } else if (seq_rec == (expected_client_seq + 63) % 64) {
-                // Duplicate command (ACK lost), re-send ACK and don't process again
-                send_once(sock_server, seq_rec, MSG_ACK, NULL, 0);
+            } else if (seq_rec == (server_seq_rx + 63) % 64) {
+                // Duplicata de comando (ACK anterior perdido) -> reenvia ACK simples
+                send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
             }
-        }
-        else if (read_bytes > 0 && unpack_status < -1) {
-            send_once(sock_server, server_seq, MSG_NACK, NULL, 0);
         }
     }
 
