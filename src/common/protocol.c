@@ -101,8 +101,8 @@ int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     
     unsigned char temp_buf[64];
 
-    int i = 0,j = 0;
-    for (; i < length; i++, j++) {
+    int i = 0, j = 0;
+    for (; i < length && j < 64; i++, j++) {
         temp_buf[j] = buf[i];
 
         if (buf[i] == 0x81 || buf[i] == 0x88) {

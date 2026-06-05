@@ -5,33 +5,52 @@
 #include <stdlib.h>
 #include <string.h>
 
-int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char *out_len, MsgType *out_type) {
+int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type) {
     int retries = 0;
     int current_timeout = TIMEOUT_MS;
 
     while (retries < MAX_RETRIES) {
         send_once(sockfd, *seq_num, mov_type, NULL, 0, "client");
         
-        unsigned char rec_seq, rec_len;
-        MsgType rec_type;
-        unsigned char rec_data[MAX_DATA_LEN];
-        
-        int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, rec_data, &rec_len, current_timeout, "client");
-        
-        if (status == 0) {
-            if (rec_seq == *seq_num) {
-                if (rec_type == MSG_NACK) {
-                    printf("NACK recebido do Servidor. Retransmitindo...\n");
-                    retries++;
-                    current_timeout *= 2;
-                    continue;
+        long long begin = get_timestamp_ms();
+        int ack_received = 0;
+        int nack_received = 0;
+
+        while (get_timestamp_ms() - begin < current_timeout) {
+            int remain = current_timeout - (int)(get_timestamp_ms() - begin);
+            if (remain <= 0) break;
+
+            unsigned char rec_seq, rec_len;
+            MsgType rec_type;
+            unsigned char data_rec[MAX_DATA_LEN];
+            
+            int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, remain, "client");
+            
+            if (status == 0) {
+                if (rec_seq == *seq_num) {
+                    if (rec_type == MSG_NACK) {
+                        nack_received = 1;
+                        break;
+                    }
+                    if (rec_type == MSG_ACK) {
+                        ack_received = 1;
+                        break;
+                    }
                 }
-                if (rec_type == MSG_ACK) {
-                    *seq_num = (*seq_num + 1) % 64; // Confirmação recebida com sucesso!
-                    return 1; 
-                }
+            } else if (status == -1) {
+                break;
             }
         }
+
+        if (ack_received) {
+            *seq_num = (*seq_num + 1) % 64; // Confirmação recebida com sucesso!
+            return 1; 
+        }
+
+        if (nack_received) {
+            printf("NACK recebido do Servidor. Retransmitindo...\n");
+        }
+
         retries++;
         current_timeout *= 2;
     }

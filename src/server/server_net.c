@@ -13,22 +13,44 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char 
     while (retries < MAX_RETRIES) {
         send_once(sockfd, *seq_num, type, data, len, "server");
 
-        unsigned char rec_seq, rec_len;
-        MsgType rec_type;
-        
-        int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, NULL, &rec_len, current_timeout, "server");
-        
-        if (status == 0 && rec_seq == *seq_num) {
-            if (rec_type == MSG_NACK) {
-                retries++;
-                current_timeout *= 2;
-                continue;
-            }
-            if (rec_type == MSG_ACK) {
-                *seq_num = (*seq_num + 1) % 64;
-                return 1;
+        long long begin = get_timestamp_ms();
+        int ack_received = 0;
+        int nack_received = 0;
+
+        while (get_timestamp_ms() - begin < current_timeout) {
+            int remain = current_timeout - (int)(get_timestamp_ms() - begin);
+            if (remain <= 0) break;
+
+            unsigned char rec_seq, rec_len;
+            MsgType rec_type;
+            
+            int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, NULL, &rec_len, remain, "server");
+            
+            if (status == 0) {
+                if (rec_seq == *seq_num) {
+                    if (rec_type == MSG_NACK) {
+                        nack_received = 1;
+                        break;
+                    }
+                    if (rec_type == MSG_ACK) {
+                        ack_received = 1;
+                        break;
+                    }
+                }
+            } else if (status == -1) {
+                break;
             }
         }
+
+        if (ack_received) {
+            *seq_num = (*seq_num + 1) % 64;
+            return 1;
+        }
+
+        if (nack_received) {
+            printf("NACK recebido do Cliente. Retransmitindo...\n");
+        }
+
         retries++;
         current_timeout *= 2;
     }
