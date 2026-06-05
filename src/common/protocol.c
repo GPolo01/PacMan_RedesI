@@ -166,41 +166,19 @@ void log_message(const char *direction, unsigned char seq, MsgType type, int len
 }
 
 int corrupted_send(int sockfd, unsigned char *buf, int len, int flags, const char *log_prefix) {
-    unsigned char temp_buf[256];
-    if (len > 256) len = 256;
-    memcpy(temp_buf, buf, len);
-
     int roll = rand() % 100;
     char filename[64];
     sprintf(filename, "%s.log", log_prefix);
     FILE *log_file = fopen(filename, "a");
 
-    if (roll < 10) {
+    if (roll < 30) { // 30% de chance de perda do pacote (drop)
         if (log_file) {
             fprintf(log_file, "[%lds] [CORRUPTED] TYPE DROPPED\n", (long)time(NULL));
             fclose(log_file);
         }
         return len; 
-    } else if (roll < 20) {
-        if (log_file) {
-            fprintf(log_file, "[%lds] [CORRUPTED] TYPE HEADER WITH ERRORS\n", (long)time(NULL));
-            fclose(log_file);
-        }
-        temp_buf[1] ^= 0xFF;
-        return send(sockfd, temp_buf, len, flags);    
-    } else if (roll < 30) {
-        if (log_file) {
-            fprintf(log_file, "[%lds] [CORRUPTED] TYPE DATA WITH ERRORS\n", (long)time(NULL));
-            fclose(log_file);
-        }
-        if (len > 4) {
-            int random_byte = 3 + (rand() % (len - 4));
-            temp_buf[random_byte] ^= 0xFF;
-        } else {
-            temp_buf[len - 1] ^= 0xFF;
-        }
-        return send(sockfd, temp_buf, len, flags);
     }
+    
     if (log_file) fclose(log_file);
     return send(sockfd, buf, len, flags);
 }
