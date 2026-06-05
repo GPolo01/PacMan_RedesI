@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
     printf("Client started on interface %s. Connecting to server...\n", argv[1]);
     printf("Sending INIT message...\n");
 
-    int success = send_and_wait(sock_client, &client_seq_tx, MSG_INIT);
+    int success = send_and_wait(sock_client, &client_seq_tx, MSG_INIT, client_seq_rx);
     if (success) {
         // Escuta ativamente esperando o primeiro bloco de dados da visão do servidor
         int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
         MsgType movement_type = get_user_movement();
 
         // Envia o movimento e aguarda o ACK de recepção do servidor
-        success = send_and_wait(sock_client, &client_seq_tx, movement_type);
+        success = send_and_wait(sock_client, &client_seq_tx, movement_type, client_seq_rx);
         
         if (success) {
             // Escuta ativamente para saber qual ação o servidor tomou (Visão, pastilha dourada, fim de jogo)

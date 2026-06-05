@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type) {
+int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char expected_rx) {
     int retries = 0;
     int current_timeout = TIMEOUT_MS;
 
@@ -27,7 +27,13 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type) {
             int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, remain, "client");
             
             if (status == 0) {
-                if (rec_seq == *seq_num) {
+                if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
+                     rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
+                    rec_seq == (expected_rx + 63) % 64) {
+                    // O servidor retransmitiu um bloco anterior (provavelmente porque perdeu o ACK anterior).
+                    // Reenviamos o ACK correspondente para destravar o servidor.
+                    send_once(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
+                } else if (rec_seq == *seq_num) {
                     if (rec_type == MSG_NACK) {
                         nack_received = 1;
                         break;

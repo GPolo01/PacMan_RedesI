@@ -24,8 +24,8 @@
 #define NOT_LENGTH  -2
 #define NOT_CRC     -3
 
-#define TIMEOUT_MS   5000 // Reduzido de 5s para 1s para melhor responsividade
-#define MAX_RETRIES  5
+#define TIMEOUT_MS   1000 // Reduzido de 5s para 1s para melhor responsividade
+#define MAX_RETRIES  10
 
 /* Unused values: 8, 9, 14 */
 typedef enum {

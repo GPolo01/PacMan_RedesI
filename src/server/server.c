@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
                     send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
                     server_seq_rx = (server_seq_rx + 1) % 64;
 
-                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size);
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
                 }
                 else if (type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                     round_num++;
@@ -100,18 +100,18 @@ int main(int argc, char **argv) {
                             case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
                         }
                         printf("Sending file %s to client...\n", filepath);
-                        int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action);
+                        int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action, server_seq_rx);
                         if (success) printf("Transmission completed!\n");
                         if (pallets == 6) {
                             printf("ALL PALLETS COLLECTED! YOU WIN!\n");
-                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0);
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
                         }
                         continue; 
                     } else if (action == 'M') {
                         printf("PACMAN LOST ONE LIFE!\n");
                         if (pacman.life == 0) {
                             printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
-                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0);
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
                             continue;
                         }
                     }
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
                     unsigned char fog_data[2000];
                     int vision_size = get_new_vision(fog_data, vision_range);
 
-                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size);
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
                 }
             } else if (seq_rec == (server_seq_rx + 63) % 64) {
                 // Duplicata de comando (ACK anterior perdido) -> reenvia ACK simples
