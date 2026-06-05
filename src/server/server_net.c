@@ -35,9 +35,9 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char 
                     } else if (rec_seq == expected_rx) {
                         // O cliente enviou um NOVO comando. Isso significa que ele recebeu com sucesso
                         // o pacote que estávamos tentando enviar (confirmação implícita).
-                        // Saímos do loop para que o servidor possa processar esse novo comando no fluxo correto.
-                        ack_received = 1;
-                        break;
+                        // Abortamos o envio atual (retornando falha) para que o servidor volte ao loop principal
+                        // e trate a retransmissão desse novo comando no fluxo correto de jogada.
+                        return 0;
                     }
                 } else if (rec_seq == *seq_num) {
                     if (rec_type == MSG_NACK) {

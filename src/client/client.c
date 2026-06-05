@@ -32,10 +32,13 @@ int main(int argc, char **argv) {
     int success = send_and_wait(sock_client, &client_seq_tx, MSG_INIT, client_seq_rx);
     if (success) {
         // Escuta ativamente esperando o primeiro bloco de dados da visão do servidor
-        int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
-        if (status == 0 && type_received == MSG_VISION) {
-            recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
-            render_map(full_vision, full_len);
+        while (1) {
+            int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
+            if (status == 0 && type_received == MSG_VISION) {
+                recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
+                render_map(full_vision, full_len);
+                break;
+            }
         }
     } else {
         printf("Failed to initialize game with server.\n");
@@ -50,27 +53,35 @@ int main(int argc, char **argv) {
         success = send_and_wait(sock_client, &client_seq_tx, movement_type, client_seq_rx);
         
         if (success) {
+            int game_over = 0;
             // Escuta ativamente para saber qual ação o servidor tomou (Visão, pastilha dourada, fim de jogo)
-            int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
-            
-            if (status == 0) {
-                if (type_received == MSG_VISION) {
-                    recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
-                    render_map(full_vision, full_len);
-                }
-                else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
-                    printf("\n>>> We found a dot! Receiving file...\n");
-                    receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
-                    printf("\nPress any movement key to continue...\n");
-                }
-                else if (type_received == MSG_ERROR) {
-                    printf("ERROR: Server reported an error in transmission.\n");
-                }
-                else if (type_received == MSG_END) {
-                    printf("Game Over! Server has ended the game.\n");
-                    break;
+            while (1) {
+                int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
+                
+                if (status == 0) {
+                    if (type_received == MSG_VISION) {
+                        recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
+                        render_map(full_vision, full_len);
+                        break;
+                    }
+                    else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
+                        printf("\n>>> We found a dot! Receiving file...\n");
+                        receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
+                        printf("\nPress any movement key to continue...\n");
+                        break;
+                    }
+                    else if (type_received == MSG_ERROR) {
+                        printf("ERROR: Server reported an error in transmission.\n");
+                        break;
+                    }
+                    else if (type_received == MSG_END) {
+                        printf("Game Over! Server has ended the game.\n");
+                        game_over = 1;
+                        break;
+                    }
                 }
             }
+            if (game_over) break;
         }
     }
     close(sock_client);
