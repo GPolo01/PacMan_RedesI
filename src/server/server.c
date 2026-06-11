@@ -42,7 +42,8 @@ int main(int argc, char **argv) {
         fclose(log_file);
     }
 
-    unsigned char seq_rec, len_rec, server_seq_tx = 0;
+    unsigned char seq_rec, len_rec;
+    unsigned char server_seq_tx = 0;
     unsigned char server_seq_rx = 0;
     MsgType type_rec;
     unsigned char data_rec[2000];
@@ -50,8 +51,7 @@ int main(int argc, char **argv) {
     printf("Server initiated, waiting for client on interface %s...\n", argv[1]);
 
     while (1) {
-        // Utiliza o receptor centralizado que filtra ruídos e responde NACK em falha de CRC
-        int status = recv_frame_with_timeout(sock_server, &seq_rec, &type_rec, data_rec, &len_rec, 3600000, "server");
+        int status = recv_frame(sock_server, &seq_rec, &type_rec, data_rec, &len_rec, 3600000, "server");
 
         if (status == 0) {
             if (seq_rec == server_seq_rx) {
@@ -62,7 +62,7 @@ int main(int argc, char **argv) {
                     unsigned char fog_data[2000];
                     int vision_size = get_new_vision(fog_data, vision_range);
                     
-                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
                     server_seq_rx = (server_seq_rx + 1) % 64;
 
                     server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
@@ -82,7 +82,7 @@ int main(int argc, char **argv) {
 
                     render_server_matrix(matrix);
 
-                    send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
                     server_seq_rx = (server_seq_rx + 1) % 64;
 
                     if (action >= '1' && action <= '6') {
@@ -122,8 +122,8 @@ int main(int argc, char **argv) {
                     server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
                 }
             } else if (seq_rec == (server_seq_rx + 63) % 64) {
-                // Duplicata de comando (ACK anterior perdido) -> reenvia ACK simples
-                send_once(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                // Duplicate command (lost previous ACK) -> resend simple ACK
+                send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
             }
         }
     }

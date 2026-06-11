@@ -52,7 +52,6 @@ void load_map(const char *filename) {
     
     if (file == NULL) {
         printf("Error: File %s not found. Generating a blank test map...\n", filename);
-        // TODO: Change for the UFPR map
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 if (i == 0 || i == SIZE - 1 || j == 0 || j == SIZE - 1) {
@@ -63,7 +62,7 @@ void load_map(const char *filename) {
             }
         }
         //Drawing the letters UFPR aligned
-        // --- Letra U (Colunas 3 a 8)
+        // --- Letter U (Columns 3 to 8)
         for (int i = 10; i <= 28; i++) {
             matrix[i][3] = 'X';  
             matrix[i][8] = 'X';  
@@ -72,12 +71,12 @@ void load_map(const char *filename) {
             matrix[29][j] = 'X'; 
         }
 
-        // --- Letra F (Colunas 12 a 17) ---
+        // --- Letter F (Columns 12 to 17) ---
         for (int i = 10; i <= 29; i++) matrix[i][12] = 'X'; 
         for (int j = 13; j <= 17; j++) matrix[10][j] = 'X'; 
         for (int j = 13; j <= 16; j++) matrix[19][j] = 'X'; 
 
-        // --- Letra P (Colunas 21 a 26) ---
+        // --- Letter P (Columns 21 to 26) ---
         for (int i = 10; i <= 29; i++) matrix[i][21] = 'X'; 
         for (int j = 22; j <= 25; j++) {
             matrix[10][j] = 'X'; 
@@ -90,7 +89,7 @@ void load_map(const char *filename) {
             }
         }
 
-        // --- Letra R (Colunas 30 a 35) ---
+        // --- Letter R (Columns 30 to 35) ---
         for (int i = 10; i <= 29; i++) matrix[i][30] = 'X';
         for (int j = 31; j <= 34; j++) {
             matrix[10][j] = 'X'; 
@@ -103,7 +102,6 @@ void load_map(const char *filename) {
             }
         }
 
-        // Perna diagonal do R
         for (int i = 20; i <= 29; i++) {
             int col = 31 + (i - 20) / 2; 
             if (col <= 35) {

@@ -6,39 +6,36 @@
 #include <string.h>
 
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char expected_rx) {
-    int retries = 0;
-    int current_timeout = TIMEOUT_MS;
-
-    while (retries < MAX_RETRIES) {
-        send_once(sockfd, *seq_num, mov_type, NULL, 0, "client");
+    while (1) {
+        send_frame(sockfd, *seq_num, mov_type, NULL, 0, "client");
         
         long long begin = get_timestamp_ms();
         int ack_received = 0;
         int nack_received = 0;
 
-        while (get_timestamp_ms() - begin < current_timeout) {
-            int remain = current_timeout - (int)(get_timestamp_ms() - begin);
+        while (get_timestamp_ms() - begin < TIMEOUT_MS) {
+            int remain = TIMEOUT_MS - (int)(get_timestamp_ms() - begin);
             if (remain <= 0) break;
 
             unsigned char rec_seq, rec_len;
             MsgType rec_type;
             unsigned char data_rec[MAX_DATA_LEN];
             
-            int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, remain, "client");
+            int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, remain, "client");
             
             if (status == 0) {
                 if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
                      rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
                     rec_seq == (expected_rx + 63) % 64) {
-                    // O servidor retransmitiu um bloco anterior (provavelmente porque perdeu o ACK anterior).
-                    // Reenviamos o ACK correspondente para destravar o servidor.
-                    send_once(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
+                    // The server retransmitted a previous block (probably because it lost the previous ACK).
+                    // Resend the corresponding ACK to unblock the server.
+                    send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
                 } else if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
                             rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
                            rec_seq == expected_rx) {
-                    // O servidor já enviou o próximo bloco de dados. Isso significa que ele recebeu
-                    // nosso comando com sucesso (confirmação implícita).
-                    // Retornamos sucesso (1) para que o cliente passe a escutar os dados no fluxo correto.
+                    // The server already sent the next data block. This means it received
+                    // our command successfully (implicit acknowledgment).
+                    // Return success (1) so the client starts listening to the data in the correct flow.
                     return 1;
                 } else if (rec_seq == *seq_num) {
                     if (rec_type == MSG_NACK) {
@@ -56,19 +53,14 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned
         }
 
         if (ack_received) {
-            *seq_num = (*seq_num + 1) % 64; // Confirmação recebida com sucesso!
+            *seq_num = (*seq_num + 1) % 64; // Acknowledgment successfully received!
             return 1; 
         }
 
         if (nack_received) {
-            printf("NACK recebido do Servidor. Retransmitindo...\n");
+            printf("NACK received from Server. Retransmitting...\n");
         }
-
-        retries++;
-        current_timeout *= 2;
     }
-    printf("TIMEOUT limite atingido no cliente!\n");
-    return 0;
 }
 
 int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const unsigned char *initial_data, unsigned char initial_len) {
@@ -84,31 +76,31 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const un
 
     FILE *file = fopen(filepath, "wb");
     if (!file) return 0;
-    printf("\nBaixando arquivo em %s...\n", filepath);
+    printf("\nDownloading file to %s...\n", filepath);
     
-    // Confirma recebimento dos metadados iniciais
-    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+    // Confirm receipt of initial metadata
+    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
     *seq_num = (*seq_num + 1) % 64;
 
     unsigned char rec_seq, rec_len, data_rec[MAX_DATA_LEN];
     MsgType rec_type;
 
     while (1) {
-        int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
+        int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
         if (status == 0) {
             if (rec_seq == *seq_num) {
                 if (rec_type == MSG_DATA) {
                     fwrite(data_rec, 1, rec_len, file);
-                    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                 } else if (rec_type == MSG_END) {
-                    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
             } else if (rec_seq == (*seq_num + 63) % 64) {
-                // Duplicata de bloco (ACK anterior se perdeu) -> reenvia o ACK do bloco
-                send_once(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
+                // Duplicate block (previous ACK lost) -> resend the block's ACK
+                send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
             }
         }
     }
@@ -121,29 +113,29 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
     memcpy(full_vision, initial_data, initial_len);
     *full_len = initial_len;
 
-    // Confirma primeira linha da visão
-    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+    // Confirm first line of the vision
+    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
     *seq_num = (*seq_num + 1) % 64;
 
     unsigned char rec_seq, rec_len, data_rec[MAX_DATA_LEN];
     MsgType rec_type;
 
     while (1) {
-        int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
+        int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
         if (status == 0) {
             if (rec_seq == *seq_num) {
                 if (rec_type == MSG_VISION) {
                     memcpy(full_vision + *full_len, data_rec, rec_len);
                     *full_len += rec_len;
-                    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                 } else if (rec_type == MSG_END) {
-                    send_once(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
             } else if (rec_seq == (*seq_num + 63) % 64) {
-                send_once(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
+                send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
             }
         }
     }

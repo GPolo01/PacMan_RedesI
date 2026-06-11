@@ -7,36 +7,33 @@
 #include <string.h>
 
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char *data, unsigned char len, unsigned char expected_rx) {
-    int retries = 0;
-    int current_timeout = TIMEOUT_MS;
-
-    while (retries < MAX_RETRIES) {
-        send_once(sockfd, *seq_num, type, data, len, "server");
+    while (1) {
+        send_frame(sockfd, *seq_num, type, data, len, "server");
 
         long long begin = get_timestamp_ms();
         int ack_received = 0;
         int nack_received = 0;
 
-        while (get_timestamp_ms() - begin < current_timeout) {
-            int remain = current_timeout - (int)(get_timestamp_ms() - begin);
+        while (get_timestamp_ms() - begin < TIMEOUT_MS) {
+            int remain = TIMEOUT_MS - (int)(get_timestamp_ms() - begin);
             if (remain <= 0) break;
 
             unsigned char rec_seq, rec_len;
             MsgType rec_type;
             
-            int status = recv_frame_with_timeout(sockfd, &rec_seq, &rec_type, NULL, &rec_len, remain, "server");
+            int status = recv_frame(sockfd, &rec_seq, &rec_type, NULL, &rec_len, remain, "server");
             
             if (status == 0) {
                 if (rec_type == MSG_INIT || (rec_type >= MSG_MOV_RIGHT && rec_type <= MSG_MOV_DOWN)) {
                     if (rec_seq == (expected_rx + 63) % 64) {
-                        // O cliente retransmitiu o comando anterior (provavelmente porque perdeu o ACK anterior).
-                        // Reenviamos o ACK correspondente para destravar o cliente.
-                        send_once(sockfd, rec_seq, MSG_ACK, NULL, 0, "server");
+                        // The client retransmitted the previous command (probably because it lost the previous ACK).
+                        // Resend the corresponding ACK to unblock the client.
+                        send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "server");
                     } else if (rec_seq == expected_rx) {
-                        // O cliente enviou um NOVO comando. Isso significa que ele recebeu com sucesso
-                        // o pacote que estávamos tentando enviar (confirmação implícita).
-                        // Abortamos o envio atual (retornando falha) para que o servidor volte ao loop principal
-                        // e trate a retransmissão desse novo comando no fluxo correto de jogada.
+                        // The client sent a NEW command. This means it successfully received
+                        // the packet (implicit ACK).
+                        // server returns to the main loop
+                        // and handles this new command in the correct flow.
                         return 0;
                     }
                 } else if (rec_seq == *seq_num) {
@@ -60,13 +57,9 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char 
         }
 
         if (nack_received) {
-            printf("NACK recebido do Cliente. Retransmitindo...\n");
+            printf("NACK received from Client. Retransmitting...\n");
         }
-
-        retries++;
-        current_timeout *= 2;
     }
-    return 0;
 }
 
 int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, unsigned char *data, int total_len, unsigned char expected_rx) {

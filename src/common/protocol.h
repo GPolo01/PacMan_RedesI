@@ -24,8 +24,7 @@
 #define NOT_LENGTH  -2
 #define NOT_CRC     -3
 
-#define TIMEOUT_MS   1000 // Reduzido de 5s para 1s para melhor responsividade
-#define MAX_RETRIES  10
+#define TIMEOUT_MS   1000 // Reduced from 5s to 1s for better responsiveness
 
 /* Unused values: 8, 9, 14 */
 typedef enum {
@@ -50,7 +49,7 @@ typedef enum {
     ERR_WRITE = 2
 } ErrorCode;
 
-// Retorna o nome amigável do tipo de mensagem para os logs
+// Returns the friendly name of the message type for logging
 const char* get_msg_type_name(MsgType type);
 
 // Calculates the CRC (Polynomial Division)
@@ -62,12 +61,13 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data, unsig
 // Disassembles and validates a received frame
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len);
 
-// --- UTILITÁRIOS COMPARTILHADOS ---
+// Logs sent and received messages formated on .log
 void log_message(const char *direction, unsigned char seq, MsgType type, int len, const char *log_prefix);
-int corrupted_send(int sockfd, unsigned char *buf, int len, int flags, const char *log_prefix);
-void send_once(int sockfd, unsigned char seq, MsgType type, const unsigned char *data, unsigned char len, const char *log_prefix);
 
-// --- RECEPTOR CENTRALIZADO DE TIMEOUT E FILTRAGEM ---
-int recv_frame_with_timeout(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len, int timeout_ms, const char *log_prefix);
+// Sends a single frame and waits for ACK (with retries on NACK or timeout)
+void send_frame(int sockfd, unsigned char seq, MsgType type, const unsigned char *data, unsigned char len, const char *log_prefix);
+
+// Waits for a frame with a specific expected sequence number, handling ACK/NACK and timeouts
+int recv_frame(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len, int timeout_ms, const char *log_prefix);
 
 #endif

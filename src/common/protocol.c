@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-// tabela para otimização do crc
+// table for CRC optimization
 static const unsigned char crc8_table[256] = {
     0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15, 0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
     0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65, 0x48, 0x4F, 0x46, 0x41, 0x54, 0x53, 0x5A, 0x5D,
@@ -165,32 +165,15 @@ void log_message(const char *direction, unsigned char seq, MsgType type, int len
     }
 }
 
-int corrupted_send(int sockfd, unsigned char *buf, int len, int flags, const char *log_prefix) {
-    int roll = rand() % 100;
-    char filename[64];
-    sprintf(filename, "%s.log", log_prefix);
-    FILE *log_file = fopen(filename, "a");
 
-    if (roll < 30) { // 30% de chance de perda do pacote (drop)
-        if (log_file) {
-            fprintf(log_file, "[%lds] [CORRUPTED] TYPE DROPPED\n", (long)time(NULL));
-            fclose(log_file);
-        }
-        return len; 
-    }
-    
-    if (log_file) fclose(log_file);
-    return send(sockfd, buf, len, flags);
-}
-
-void send_once(int sockfd, unsigned char seq, MsgType type, const unsigned char *data, unsigned char len, const char *log_prefix) {
+void send_frame(int sockfd, unsigned char seq, MsgType type, const unsigned char *data, unsigned char len, const char *log_prefix) {
     unsigned char frame[64];
     int size = pack_frame(seq, type, data, len, frame);
     log_message("SEND", seq, type, len, log_prefix);
-    corrupted_send(sockfd, frame, size, 0, log_prefix);
+    send(sockfd, frame, size, 0);
 }
 
-int recv_frame_with_timeout(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len, int timeout_ms, const char *log_prefix) {
+int recv_frame(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len, int timeout_ms, const char *log_prefix) {
     long long begin = get_timestamp_ms();
     unsigned char buffer_rec[256];
     
@@ -210,11 +193,11 @@ int recv_frame_with_timeout(int sockfd, unsigned char *out_seq, MsgType *out_typ
             int status = unpack_frame(buffer_rec, bytes, out_seq, out_type, out_data, out_len);
             if (status == 0) {
                 log_message("RECV", *out_seq, *out_type, *out_len, log_prefix);
-                return 0; // Sucesso
+                return 0; // Success
             } else if (status == NOT_CRC || status == NOT_LENGTH) {
                 unsigned char bad_seq = ((buffer_rec[1] & 0x07) << 3) | ((buffer_rec[2] >> 5) & 0x07);
-                send_once(sockfd, bad_seq, MSG_NACK, NULL, 0, log_prefix);
-                return -2; // Corrompido
+                send_frame(sockfd, bad_seq, MSG_NACK, NULL, 0, log_prefix);
+                return -2; // Corrupted
             }
         }
     }

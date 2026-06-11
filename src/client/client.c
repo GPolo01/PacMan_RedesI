@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
     }
 
     int sock_client = create_raw_socket(argv[1]);
-    unsigned char client_seq_tx = 0; // Controla sequência do que o cliente envia
-    unsigned char client_seq_rx = 0; // Controla sequência do que o cliente recebe
+    unsigned char client_seq_tx = 0; // Controls the sequence of what the client sends
+    unsigned char client_seq_rx = 0; // Controls the sequence of what the client receives
 
     MsgType type_received;
     unsigned char len_received, data_received[MAX_DATA_LEN], full_vision[2000];
@@ -31,9 +31,9 @@ int main(int argc, char **argv) {
 
     int success = send_and_wait(sock_client, &client_seq_tx, MSG_INIT, client_seq_rx);
     if (success) {
-        // Escuta ativamente esperando o primeiro bloco de dados da visão do servidor
+        // Actively listens waiting for the first block of data of the server vision
         while (1) {
-            int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
+            int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
             if (status == 0 && type_received == MSG_VISION) {
                 recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
                 render_map(full_vision, full_len);
@@ -49,14 +49,14 @@ int main(int argc, char **argv) {
     while (1) {
         MsgType movement_type = get_user_movement();
 
-        // Envia o movimento e aguarda o ACK de recepção do servidor
+        // Sends the movement and waits for the server ACK of receipt
         success = send_and_wait(sock_client, &client_seq_tx, movement_type, client_seq_rx);
         
         if (success) {
             int game_over = 0;
-            // Escuta ativamente para saber qual ação o servidor tomou (Visão, pastilha dourada, fim de jogo)
+            // Actively listens to know what action the server took (Vision, golden pallet, game over)
             while (1) {
-                int status = recv_frame_with_timeout(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
+                int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
                 
                 if (status == 0) {
                     if (type_received == MSG_VISION) {
