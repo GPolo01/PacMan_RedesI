@@ -3,19 +3,13 @@
 
 #include "../common/protocol.h"
 
-// Maximum wait thime for a server response
-#define TIMEOUT_MS 1000
-
-// Logs the sent and received messages
-void log_message(const char *direction, unsigned char seq, MsgType type, int len);
-
 int server_send(int sockfd, unsigned char *seq_num, MsgType type, 
-                unsigned char *data, unsigned char len);
+                unsigned char *data, unsigned char len, unsigned char expected_rx);
 
 // Sends large payloads into 31-byte chunks and terminates with MSG_END
 int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, 
-    unsigned char *data, int total_len);
+    unsigned char *data, int total_len, unsigned char expected_rx);
 
-int server_send_file(int sockfd, unsigned char *seq_num, MsgType file_type, const char *filepath, int action);
+int server_send_file(int sockfd, unsigned char *seq_num, MsgType file_type, const char *filepath, int action, unsigned char expected_rx);
 
 #endif

@@ -2,58 +2,68 @@
 #include "../common/socket.h"
 #include <sys/socket.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <sys/time.h>
 
-int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, 
-    unsigned char *out_data, unsigned char *out_len, MsgType *out_type) {
-    
-    unsigned char sending_frame[64], buffer_rec[256];
-    unsigned char rec_seq, rec_len;
-    MsgType rec_type;
+int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char expected_rx) {
+    while (1) {
+        send_frame(sockfd, *seq_num, mov_type, NULL, 0, "client");
+        
+        long long begin = get_timestamp_ms();
+        int ack_received = 0;
+        int nack_received = 0;
 
-    int frame_size = pack_frame(*seq_num, mov_type, NULL, 0, sending_frame);
+        while (get_timestamp_ms() - begin < TIMEOUT_MS) {
+            int remain = TIMEOUT_MS - (int)(get_timestamp_ms() - begin);
+            if (remain <= 0) break;
 
-    struct timeval timeout = { .tv_sec = TIMEOUT_MS / 1000, .tv_usec = (TIMEOUT_MS % 1000) * 1000};
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof(timeout));
-    
-    while(1) {
-        send(sockfd, sending_frame, frame_size, 0);
-        unsigned long begin = get_timestamp_ms();
-
-        do {
-            int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
-
-            if (read_bytes > 0) {
-                if (unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, out_data, &rec_len) == 0) {
-                    // Don't proccess the msg u have sended (same type)
-                    if (rec_seq == *seq_num && rec_type != mov_type) {
-                        if (rec_type == MSG_NACK) {
-                            printf("NACK received. Beginning retransmission...\n");
-                            break; // Break the DO-WHILE, triggers the outer WHILE to re-send
-                        }
-                        
-                        // Sending ACK to server
-                        unsigned char ack_frame[64];
-                        int ack_size = pack_frame(rec_seq, MSG_ACK, NULL, 0, ack_frame);
-                        send(sockfd, ack_frame, ack_size, 0);
-                        
-                        *out_len = rec_len;
-                        *out_type = rec_type;
-                        *seq_num = (*seq_num + 1) % 64; // Increment sequence upon success
-                        return 1;
+            unsigned char rec_seq, rec_len;
+            MsgType rec_type;
+            unsigned char data_rec[MAX_DATA_LEN];
+            
+            int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, remain, "client");
+            
+            if (status == 0) {
+                if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
+                     rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
+                    rec_seq == (expected_rx + 63) % 64) {
+                    // The server retransmitted a previous block (probably because it lost the previous ACK).
+                    // Resend the corresponding ACK to unblock the server.
+                    send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
+                } else if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
+                            rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
+                           rec_seq == expected_rx) {
+                    // The server already sent the next data block. This means it received
+                    // our command successfully (implicit acknowledgment).
+                    // Return success (1) so the client starts listening to the data in the correct flow.
+                    return 1;
+                } else if (rec_seq == *seq_num) {
+                    if (rec_type == MSG_NACK) {
+                        nack_received = 1;
+                        break;
+                    }
+                    if (rec_type == MSG_ACK) {
+                        ack_received = 1;
+                        break;
                     }
                 }
+            } else if (status == -1) {
+                break;
             }
-        } while (get_timestamp_ms() - begin <= TIMEOUT_MS);
+        }
 
-        printf("TIMEOUT! Retransmitting packet...\n");
+        if (ack_received) {
+            *seq_num = (*seq_num + 1) % 64; // Acknowledgment successfully received!
+            return 1; 
+        }
+
+        if (nack_received) {
+            printf("NACK received from Server. Retransmitting...\n");
+        }
     }
 }
 
-int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, 
-                 const unsigned char *initial_data, unsigned char initial_len) {
+int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const unsigned char *initial_data, unsigned char initial_len) {
     char filepath[128];
     char action = (initial_len > 0) ? initial_data[0] : '0';
 
@@ -61,39 +71,36 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type,
         case MSG_TXT: sprintf(filepath, "../dots/%c.txt", action); break;
         case MSG_JPG: sprintf(filepath, "../dots/%c.jpg", action); break;
         case MSG_MP4: sprintf(filepath, "../dots/%c.mp4", action); break;
-        default: return 0; break;
+        default: return 0;
     }
 
     FILE *file = fopen(filepath, "wb");
-    if (!file) {
-        printf("Error: Cannot create file %s\n", filepath);
-        return 0;
-    }
+    if (!file) return 0;
+    printf("\nDownloading file to %s...\n", filepath);
+    
+    // Confirm receipt of initial metadata
+    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+    *seq_num = (*seq_num + 1) % 64;
 
-    printf("\nIniciating dowload of file %s\n", filepath);
-
-    unsigned char rec_seq, rec_len, ack_frame[64], buffer_rec[256], data_rec[MAX_DATA_LEN];
+    unsigned char rec_seq, rec_len, data_rec[MAX_DATA_LEN];
     MsgType rec_type;
 
-    // Aqui entramos em um loop recebendo MSG_DADOS e respondendo com MSG_ACK
     while (1) {
-        int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
-        if (read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len) == 0) {
-            // testar +1 ou sem +1
+        int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
+        if (status == 0) {
             if (rec_seq == *seq_num) {
                 if (rec_type == MSG_DATA) {
                     fwrite(data_rec, 1, rec_len, file);
-
-                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
-                    send(sockfd, ack_frame, ack_size, 0);
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                 } else if (rec_type == MSG_END) {
-                    printf("Download concluded!\n");
-                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
-                    send(sockfd, ack_frame, ack_size, 0);
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
+            } else if (rec_seq == (*seq_num + 63) % 64) {
+                // Duplicate block (previous ACK lost) -> resend the block's ACK
+                send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
             }
         }
     }
@@ -106,29 +113,31 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
     memcpy(full_vision, initial_data, initial_len);
     *full_len = initial_len;
 
-    unsigned char rec_seq, rec_len, ack_frame[64], buffer_rec[256], data_rec[MAX_DATA_LEN];
+    // Confirm first line of the vision
+    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
+    *seq_num = (*seq_num + 1) % 64;
+
+    unsigned char rec_seq, rec_len, data_rec[MAX_DATA_LEN];
     MsgType rec_type;
 
     while (1) {
-        int read_bytes = recv(sockfd, buffer_rec, sizeof(buffer_rec), 0);
-        if (read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &rec_seq, &rec_type, data_rec, &rec_len) == 0) {
+        int status = recv_frame(sockfd, &rec_seq, &rec_type, data_rec, &rec_len, TIMEOUT_MS, "client");
+        if (status == 0) {
             if (rec_seq == *seq_num) {
                 if (rec_type == MSG_VISION) {
                     memcpy(full_vision + *full_len, data_rec, rec_len);
                     *full_len += rec_len;
-                    
-                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
-                    send(sockfd, ack_frame, ack_size, 0);
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                 } else if (rec_type == MSG_END) {
-                    int ack_size = pack_frame(*seq_num, MSG_ACK, NULL, 0, ack_frame);
-                    send(sockfd, ack_frame, ack_size, 0);
+                    send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                     break;
                 }
+            } else if (rec_seq == (*seq_num + 63) % 64) {
+                send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
             }
         }
     }
     return 1;
 }
- 

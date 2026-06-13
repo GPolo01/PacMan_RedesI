@@ -42,77 +42,88 @@ int main(int argc, char **argv) {
         fclose(log_file);
     }
 
-    unsigned char seq_rec, len_rec, server_seq = 0;
-    int read_bytes;
+    unsigned char seq_rec, len_rec;
+    unsigned char server_seq_tx = 0;
+    unsigned char server_seq_rx = 0;
     MsgType type_rec;
-    unsigned char buffer_rec[256], data_rec[2000];
+    unsigned char data_rec[2000];
     
     printf("Server initiated, waiting for client on interface %s...\n", argv[1]);
 
     while (1) {
-        read_bytes = recv(sock_server, buffer_rec, sizeof(buffer_rec), 0);
+        int status = recv_frame(sock_server, &seq_rec, &type_rec, data_rec, &len_rec, 3600000, "server");
 
-        if( read_bytes > 0 && unpack_frame(buffer_rec, read_bytes, &seq_rec, &type_rec, data_rec, &len_rec) == 0) {
-            log_message("RECV", seq_rec, type_rec, len_rec);
-            
-            if (type_rec == MSG_INIT) {
-                printf("Connected to client! Sending initial map vision.\n");
-                round_num = 0;
-                render_server_matrix(matrix);
-                unsigned char fog_data[2000];
-                int vision_size = get_new_vision(fog_data, vision_range);
-                server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
-            }
-            else if(type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
-                round_num++;
-                
-                if (round_num % 5 == 0 && vision_range < 19) vision_range++;
+        if (status == 0) {
+            if (seq_rec == server_seq_rx) {
+                if (type_rec == MSG_INIT) {
+                    printf("Connected to client! Sending initial map vision.\n");
+                    round_num = 0;
+                    render_server_matrix(matrix);
+                    unsigned char fog_data[2000];
+                    int vision_size = get_new_vision(fog_data, vision_range);
+                    
+                    send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    server_seq_rx = (server_seq_rx + 1) % 64;
 
-                pacman_movement(type_rec);
-                ghosts_movement(&red_ghost, 1);
-                ghosts_movement(&blue_ghost, 2);
-                ghosts_movement(&green_ghost, 3);
-                ghosts_movement(&yellow_ghost, 4);
-
-                char action = check_collisions();
-
-                render_server_matrix(matrix);
-
-                if (action >= '1' && action <= '6') {
-                    printf("PACMAN ATE PALLET %c!\n", action);
-
-                    MsgType file_type;
-                    char filepath[256];
-
-                    switch (action) {
-                        case '1': file_type = MSG_TXT; strcpy(filepath, "../pallets/1.txt"); break;
-                        case '2': file_type = MSG_TXT; strcpy(filepath, "../pallets/2.txt"); break;
-                        case '3': file_type = MSG_JPG; strcpy(filepath, "../pallets/3.jpg"); break;
-                        case '4': file_type = MSG_JPG; strcpy(filepath, "../pallets/4.jpg"); break;
-                        case '5': file_type = MSG_MP4; strcpy(filepath, "../pallets/5.mp4"); break;
-                        case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
-                    }
-                    printf("Sending file %s to client...\n", filepath);
-                    int success = server_send_file(sock_server, &server_seq, file_type, filepath, action);
-                    if (success) printf("Transmission completed!\n");
-                    if (pallets == 6) {
-                        printf("ALL PALLETS COLLECTED! YOU WIN!\n");
-                        server_send(sock_server, &server_seq, MSG_END, NULL, 0);
-                    }
-                    continue; // Temporário.
-                } else if (action == 'M') {
-                    printf("PACMAN LOST ONE LIFE!\n");
-                    if (pacman.life == 0) {
-                        printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
-                        server_send(sock_server, &server_seq, MSG_END, NULL, 0);
-                        continue;
-                    }
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
                 }
+                else if (type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
+                    round_num++;
+                    
+                    if (round_num % 5 == 0 && vision_range < 19) vision_range++;
 
-                unsigned char fog_data[2000];
-                int vision_size = get_new_vision(fog_data, vision_range);
+                    pacman_movement(type_rec);
+                    ghosts_movement(&red_ghost, 1);
+                    ghosts_movement(&blue_ghost, 2);
+                    ghosts_movement(&green_ghost, 3);
+                    ghosts_movement(&yellow_ghost, 4);
 
-                server_send_vision(sock_server, &server_seq, MSG_VISION, fog_data, vision_size);
+                    char action = check_collisions();
+
+                    render_server_matrix(matrix);
+
+                    send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
+                    server_seq_rx = (server_seq_rx + 1) % 64;
+
+                    if (action >= '1' && action <= '6') {
+                        printf("PACMAN ATE PALLET %c!\n", action);
+
+                        MsgType file_type;
+                        char filepath[256];
+
+                        switch (action) {
+                            case '1': file_type = MSG_TXT; strcpy(filepath, "../pallets/1.txt"); break;
+                            case '2': file_type = MSG_TXT; strcpy(filepath, "../pallets/2.txt"); break;
+                            case '3': file_type = MSG_JPG; strcpy(filepath, "../pallets/3.jpg"); break;
+                            case '4': file_type = MSG_JPG; strcpy(filepath, "../pallets/4.jpg"); break;
+                            case '5': file_type = MSG_MP4; strcpy(filepath, "../pallets/5.mp4"); break;
+                            case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
+                        }
+                        printf("Sending file %s to client...\n", filepath);
+                        int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action, server_seq_rx);
+                        if (success) printf("Transmission completed!\n");
+                        if (pallets == 6) {
+                            printf("ALL PALLETS COLLECTED! YOU WIN!\n");
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
+                        }
+                        continue; 
+                    } else if (action == 'M') {
+                        printf("PACMAN LOST ONE LIFE!\n");
+                        if (pacman.life == 0) {
+                            printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
+                            continue;
+                        }
+                    }
+
+                    unsigned char fog_data[2000];
+                    int vision_size = get_new_vision(fog_data, vision_range);
+
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+                }
+            } else if (seq_rec == (server_seq_rx + 63) % 64) {
+                // Duplicate command (lost previous ACK) -> resend simple ACK
+                send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
             }
         }
     }

@@ -15,18 +15,18 @@ struct character yellow_ghost;
 char matrix[SIZE][SIZE];
 
 /* functions:
-    cria e fica recarregando mapa(40x40) csv;
-    P - PacMan; X - parede; 0 - posicao vazia;
-    1 a 6 - os arquivos 2 txt, 2 jpg, 2 mp4; 
-    sorteio de posição aleatória (pac-man, fantasmas, pastilhas)
-    conecta com o cliente;
-    envia visualização do mapa de pac-man;
-    espera receber os movimentos;
-    movimenta os fantasmas:
-        G - alterna entre direita e esquerda;
-        R - regra da mão esquerda;
-        B - regra da mão direita;
-        Y - aleatorio;
+    creates and reloads the map (40x40) csv;
+    P - PacMan; X - wall; 0 - empty position;
+    1 to 6 - files: 2 txt, 2 jpg, 2 mp4; 
+    random position generation (pac-man, ghosts, pallets);
+    connects with the client;
+    sends pac-man map vision;
+    waits to receive movements;
+    moves the ghosts:
+        G - alternates between right and left;
+        R - left-hand rule;
+        B - right-hand rule;
+        Y - random;
 */
 
 // Spawns a character at a random empty ('0') position

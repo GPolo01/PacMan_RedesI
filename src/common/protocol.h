@@ -20,6 +20,12 @@
 #define MAX_DATA_LEN 31
 #define MAX_SEQ 63
 
+#define NOT_MESSAGE -1
+#define NOT_LENGTH  -2
+#define NOT_CRC     -3
+
+#define TIMEOUT_MS   1000 // Reduced from 5s to 1s for better responsiveness
+
 /* Unused values: 8, 9, 14 */
 typedef enum {
     MSG_ACK = 0,
@@ -43,6 +49,9 @@ typedef enum {
     ERR_WRITE = 2
 } ErrorCode;
 
+// Returns the friendly name of the message type for logging
+const char* get_msg_type_name(MsgType type);
+
 // Calculates the CRC (Polynomial Division)
 unsigned char crc(unsigned char len, unsigned char seq, unsigned char type, const unsigned char *data);
 
@@ -51,5 +60,14 @@ int pack_frame(unsigned char seq, MsgType type, const unsigned char *data, unsig
 
 // Disassembles and validates a received frame
 int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len);
+
+// Logs sent and received messages formated on .log
+void log_message(const char *direction, unsigned char seq, MsgType type, int len, const char *log_prefix);
+
+// Sends a single frame and waits for ACK (with retries on NACK or timeout)
+void send_frame(int sockfd, unsigned char seq, MsgType type, const unsigned char *data, unsigned char len, const char *log_prefix);
+
+// Waits for a frame with a specific expected sequence number, handling ACK/NACK and timeouts
+int recv_frame(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned char *out_data, unsigned char *out_len, int timeout_ms, const char *log_prefix);
 
 #endif
