@@ -105,8 +105,8 @@ int main(int argc, char **argv) {
                         if (pallets == 6) {
                             printf("ALL PALLETS COLLECTED! YOU WIN!\n");
                             server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
+                            continue; 
                         }
-                        continue; 
                     } else if (action == 'M') {
                         printf("PACMAN LOST ONE LIFE!\n");
                         if (pacman.life == 0) {

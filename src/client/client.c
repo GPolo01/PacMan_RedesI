@@ -67,7 +67,14 @@ int main(int argc, char **argv) {
                     else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
                         printf("\n FOUND A PALLET! Receiving file...\n");
                         receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
-
+                        int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
+                
+                        if (status == 0) {
+                            if (type_received == MSG_VISION) {
+                                recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
+                                render_map(full_vision, full_len);
+                            }
+                        }
                         char filepath[128];
                         char number = data_received[0];
                         
