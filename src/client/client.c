@@ -65,9 +65,45 @@ int main(int argc, char **argv) {
                         break;
                     }
                     else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
-                        printf("\n>>> We found a dot! Receiving file...\n");
+                        printf("\n FOUND A PALLET! Receiving file...\n");
                         receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
-                        printf("\nPress any movement key to continue...\n");
+
+                        char filepath[128];
+                        char number = data_received[0];
+                        
+                        if (type_received == MSG_TXT) sprintf(filepath, "../dots/%c.txt", number);
+                        else if (type_received == MSG_JPG) sprintf(filepath, "../dots/%c.jpg", number);
+                        else if (type_received == MSG_MP4) sprintf(filepath, "../dots/%c.mp4", number);
+
+                        char command[512];
+                        char chmod_cmd[256];
+
+                        char *sudo_user = getenv("SUDO_USER");
+                        sprintf(chmod_cmd, "chmod 777 %s", filepath);
+                        system(chmod_cmd);
+
+                        if (sudo_user != NULL) {
+                            if (type_received == MSG_MP4) {
+                                // O player de vídeo precisa ser forçado a achar o monitor e o áudio do usuário logado
+                                sprintf(command, "sudo -u %s env DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$(id -u %s) xdg-open %s > /dev/null 2>&1", sudo_user, sudo_user, filepath);
+                            } else {
+                                // Imagens e textos são mais simples e abrem normalmente
+                                sprintf(command, "sudo -u %s xdg-open %s > /dev/null 2>&1", sudo_user, filepath);
+                            }
+                        } else {
+                            sprintf(command, "xdg-open %s > /dev/null 2>&1", filepath);
+                        }
+                        
+                        system(command);
+
+                        printf("\nFile Open\n");
+                        printf("Press [ENTER] in the terminal when you want to go back\n");
+
+                        int key;
+                        while((key = getchar()) != '\n' && key != EOF);
+
+                        if(remove(filepath) == 0) printf("Removing File, move to continue");
+                        else printf("Warning, not possible to destroy file");
                         break;
                     }
                     else if (type_received == MSG_ERROR) {
