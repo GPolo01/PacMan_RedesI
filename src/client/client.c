@@ -87,7 +87,6 @@ int main(int argc, char **argv) {
                                 // O player de vídeo precisa ser forçado a achar o monitor e o áudio do usuário logado
                                 sprintf(command, "sudo -u %s env DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$(id -u %s) xdg-open %s > /dev/null 2>&1", sudo_user, sudo_user, filepath);
                             } else {
-                                // Imagens e textos são mais simples e abrem normalmente
                                 sprintf(command, "sudo -u %s xdg-open %s > /dev/null 2>&1", sudo_user, filepath);
                             }
                         } else {
