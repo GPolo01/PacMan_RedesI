@@ -110,23 +110,18 @@ int main(int argc, char **argv) {
                     } else if (action == 'M') {
                         char filepath[256];
                         MsgType file_type;
-                        printf("PACMAN LOST ONE LIFE!\n");
+
+                        file_type = MSG_JPG;
                         
-                        if (pacman.life == 0) {
-                            printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
-                            file_type = MSG_JPG;
-                            strcpy(filepath, "../pallets/game_over.jpg"); break;
-                            int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action, server_seq_rx);
-                            if (success) printf("Transmission completed!\n");
-                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
-                            continue;
+                        if (pacman.life > 0) {
+                            printf("PACMAN LOST ONE LIFE! (%d remaining)\n", pacman.life);
+                            server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/dead.jpg", 'D', server_seq_rx);
                         } else {
-                            file_type = MSG_JPG;
-                            strcpy(filepath, "../pallets/dead.jpg"); break;
-                            int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action, server_seq_rx);
-                            if (success) printf("Transmission completed!\n");
-                            continue;
+                            printf("PACMAN HAS NO MORE LIVES! GAME OVER!\n");
+                            server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/game_over.jpg", 'G', server_seq_rx);
+                            server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
                         }
+                        continue;
                     }
 
                     unsigned char fog_data[2000];

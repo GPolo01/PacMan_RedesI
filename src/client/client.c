@@ -65,11 +65,18 @@ int main(int argc, char **argv) {
                         break;
                     }
                     else if (type_received == MSG_TXT || type_received == MSG_JPG || type_received == MSG_MP4) {
-                        printf("\n FOUND A PALLET! Receiving file...\n");
-                        receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
-
-                        char filepath[128];
                         char number = data_received[0];
+                        char filepath[128];
+
+                        if (number == 'D') {
+                            printf("\nPACMAN lost one life\n");
+                        } else if (number == 'G') {
+                            printf("\nGAME OVER\n");
+                        } else {
+                            printf("\nPallet found! Receiving file: %c \n", number);
+                        }
+
+                        receive_file(sock_client, &client_seq_rx, type_received, data_received, len_received);
                         
                         if (type_received == MSG_TXT) sprintf(filepath, "../dots/%c.txt", number);
                         else if (type_received == MSG_JPG) sprintf(filepath, "../dots/%c.jpg", number);
