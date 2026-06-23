@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
                         int key;
                         while((key = getchar()) != '\n' && key != EOF);
 
-                        if(remove(filepath) == 0) printf("Removing File, move to continue");
+                        if(remove(filepath) == 0) printf("Removing File, move to continue\n");
                         else printf("Warning, not possible to destroy file");
                         break;
                     }
