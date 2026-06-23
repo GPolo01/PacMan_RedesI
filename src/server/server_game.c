@@ -39,6 +39,8 @@ void random_position(struct character *c) {
 
     c->x = i;
     c->y = j;
+    c->old_x = i;
+    c->old_y = j;
     c->direction = 0; // All start facing UP 
     c->left_right_sense = '0'; //only important to Green Ghost
 }
@@ -55,6 +57,8 @@ void spawn_pallet(char item) {
 
 // Processes PacMan's movement requested by the client
 void pacman_movement(MsgType mov_type) {
+    pacman.old_x = pacman.x;
+    pacman.old_y = pacman.y;
     int x = pacman.x;
     int y = pacman.y;
 
@@ -87,6 +91,8 @@ void pacman_movement(MsgType mov_type) {
 int dir_x[4] = {-1, 0, 1, 0};
 int dir_y[4] = {0, 1, 0, -1};
 void ghosts_movement(struct character *c, int id){
+    c->old_x = c->x;
+    c->old_y = c->y;
     int direction = c->direction;
     int x = c->x + dir_x[direction];
     int y = c->y + dir_y[direction];
@@ -135,11 +141,15 @@ void ghosts_movement(struct character *c, int id){
 }
 
 char check_collisions() {
-    // With ghosts
-    if((pacman.x == red_ghost.x && pacman.y == red_ghost.y) || 
+    // With ghosts (standard or crossing/swapping positions)
+    if ((pacman.x == red_ghost.x && pacman.y == red_ghost.y) ||
+        (pacman.x == red_ghost.old_x && pacman.y == red_ghost.old_y && red_ghost.x == pacman.old_x && red_ghost.y == pacman.old_y) ||
         (pacman.x == blue_ghost.x && pacman.y == blue_ghost.y) ||
+        (pacman.x == blue_ghost.old_x && pacman.y == blue_ghost.old_y && blue_ghost.x == pacman.old_x && blue_ghost.y == pacman.old_y) ||
         (pacman.x == green_ghost.x && pacman.y == green_ghost.y) ||
-        (pacman.x == yellow_ghost.x && pacman.y == yellow_ghost.y)) {
+        (pacman.x == green_ghost.old_x && pacman.y == green_ghost.old_y && green_ghost.x == pacman.old_x && green_ghost.y == pacman.old_y) ||
+        (pacman.x == yellow_ghost.x && pacman.y == yellow_ghost.y) ||
+        (pacman.x == yellow_ghost.old_x && pacman.y == yellow_ghost.old_y && yellow_ghost.x == pacman.old_x && yellow_ghost.y == pacman.old_y)) {
         pacman.life--;
         return 'M';
     }
