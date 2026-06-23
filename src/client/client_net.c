@@ -109,9 +109,10 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const un
 }
 
 int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initial_data, 
-                  unsigned char initial_len, unsigned char *full_vision, int *full_len) {
+                  unsigned char initial_len, unsigned char *full_vision, int *full_len, char *out_action_after_vision) {
     memcpy(full_vision, initial_data, initial_len);
     *full_len = initial_len;
+    *out_action_after_vision = 0;
 
     // Confirm first line of the vision
     send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
@@ -130,6 +131,9 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
                     send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                 } else if (rec_type == MSG_END) {
+                    if (rec_len > 0) {
+                        *out_action_after_vision = (char)data_rec[0];
+                    }
                     send_frame(sockfd, *seq_num, MSG_ACK, NULL, 0, "client");
                     *seq_num = (*seq_num + 1) % 64;
                     break;

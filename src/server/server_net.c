@@ -62,7 +62,7 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char 
     }
 }
 
-int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, unsigned char *data, int total_len, unsigned char expected_rx) {
+int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, unsigned char *data, int total_len, unsigned char expected_rx, char action_after_vision) {
     int bytes_sent = 0;
     while (bytes_sent < total_len) {
         int chunk_size = total_len - bytes_sent;
@@ -70,6 +70,10 @@ int server_send_vision(int sockfd, unsigned char *seq_num, MsgType type, unsigne
 
         if (!server_send(sockfd, seq_num, type, data + bytes_sent, chunk_size, expected_rx)) return 0;
         bytes_sent += chunk_size;
+    }
+    if (action_after_vision != 0) {
+        unsigned char action_byte = (unsigned char)action_after_vision;
+        return server_send(sockfd, seq_num, MSG_END, &action_byte, 1, expected_rx);
     }
     return server_send(sockfd, seq_num, MSG_END, NULL, 0, expected_rx);
 }

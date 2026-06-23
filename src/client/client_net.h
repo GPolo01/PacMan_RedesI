@@ -12,6 +12,6 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const un
 
 // Handles receiving blocks of the vision using a sliding window or Stop-and-Wait
 int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initial_data, 
-                  unsigned char initial_len, unsigned char *full_vision, int *full_len);
+                  unsigned char initial_len, unsigned char *full_vision, int *full_len, char *out_action_after_vision);
 
 #endif

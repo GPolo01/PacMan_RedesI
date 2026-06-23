@@ -35,7 +35,8 @@ int main(int argc, char **argv) {
         while (1) {
             int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
             if (status == 0 && type_received == MSG_VISION) {
-                recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
+                char dummy_action = 0;
+                recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &dummy_action);
                 render_map(full_vision, full_len);
                 break;
             }
@@ -60,75 +61,78 @@ int main(int argc, char **argv) {
                 
                 if (status == 0) {
                     if (type_received == MSG_VISION) {
-                        recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len);
+                        char action_after_vision = 0;
+                        recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &action_after_vision);
                         render_map(full_vision, full_len);
                         
-                        // Check if a file is coming next (after eating a pallet or dying)
-                        MsgType file_type;
-                        unsigned char file_len, file_data[MAX_DATA_LEN];
-                        int file_status = recv_frame(sock_client, &client_seq_rx, &file_type, file_data, &file_len, 150, "client");
-                        
-                        if (file_status == 0) {
-                            if (file_type == MSG_TXT || file_type == MSG_JPG || file_type == MSG_MP4) {
-                                char number = file_data[0];
+                        if (action_after_vision != 0) {
+                            // Check if a file is coming next (after eating a pallet or dying)
+                            MsgType file_type;
+                            unsigned char file_len, file_data[MAX_DATA_LEN];
+                            int file_status = recv_frame(sock_client, &client_seq_rx, &file_type, file_data, &file_len, TIMEOUT_MS, "client");
+                            
+                            if (file_status == 0) {
+                                if (file_type == MSG_TXT || file_type == MSG_JPG || file_type == MSG_MP4) {
+                                    char number = file_data[0];
 
-                                if (number == 'D') {
-                                    printf("\nPACMAN lost one life\n");
-                                } else if (number == 'G') {
-                                    printf("\nGAME OVER\n");
-                                } else {
-                                    printf("\nPallet found! Receiving file: %c \n", number);
-                                }
-
-                                receive_file(sock_client, &client_seq_rx, file_type, file_data, file_len);
-                                
-                                char filepath[128];
-                                
-                                if (file_type == MSG_TXT) sprintf(filepath, "../dots/%c.txt", number);
-                                else if (file_type == MSG_JPG) sprintf(filepath, "../dots/%c.jpg", number);
-                                else if (file_type == MSG_MP4) sprintf(filepath, "../dots/%c.mp4", number);
-
-                                char command[512];
-                                char chmod_cmd[256];
-
-                                char *sudo_user = getenv("SUDO_USER");
-                                sprintf(chmod_cmd, "chmod 777 %s", filepath);
-                                system(chmod_cmd);
-
-                                if (sudo_user != NULL) {
-                                    if (file_type == MSG_MP4) {
-                                        // O player de vídeo precisa ser forçado a achar o monitor e o áudio do usuário logado
-                                        sprintf(command, "sudo -u %s env DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$(id -u %s) xdg-open %s > /dev/null 2>&1", sudo_user, sudo_user, filepath);
+                                    if (number == 'D') {
+                                        printf("\nPACMAN lost one life\n");
+                                    } else if (number == 'G') {
+                                        printf("\nGAME OVER\n");
                                     } else {
-                                        // Imagens e textos são mais simples e abrem normalmente
-                                        sprintf(command, "sudo -u %s xdg-open %s > /dev/null 2>&1", sudo_user, filepath);
+                                        printf("\nPallet found! Receiving file: %c \n", number);
                                     }
-                                } else {
-                                    sprintf(command, "xdg-open %s > /dev/null 2>&1", filepath);
-                                }
-                                
-                                system(command);
 
-                                printf("\nFile Open\n");
-                                printf("Press [ENTER] in the terminal when you want to go back\n");
+                                    receive_file(sock_client, &client_seq_rx, file_type, file_data, file_len);
+                                    
+                                    char filepath[128];
+                                    
+                                    if (file_type == MSG_TXT) sprintf(filepath, "../dots/%c.txt", number);
+                                    else if (file_type == MSG_JPG) sprintf(filepath, "../dots/%c.jpg", number);
+                                    else if (file_type == MSG_MP4) sprintf(filepath, "../dots/%c.mp4", number);
 
-                                int key;
-                                while((key = getchar()) != '\n' && key != EOF);
+                                    char command[512];
+                                    char chmod_cmd[256];
 
-                                if(remove(filepath) == 0) printf("Removing File, move to continue\n");
-                                else printf("Warning, not possible to destroy file\n");
-                                
-                                // Check if MSG_END is sent next (in case it was the last pallet or game over)
-                                MsgType end_type;
-                                unsigned char end_len, end_data[MAX_DATA_LEN];
-                                int end_status = recv_frame(sock_client, &client_seq_rx, &end_type, end_data, &end_len, 150, "client");
-                                if (end_status == 0 && end_type == MSG_END) {
+                                    char *sudo_user = getenv("SUDO_USER");
+                                    sprintf(chmod_cmd, "chmod 777 %s", filepath);
+                                    system(chmod_cmd);
+
+                                    if (sudo_user != NULL) {
+                                        if (file_type == MSG_MP4) {
+                                            // O player de vídeo precisa ser forçado a achar o monitor e o áudio do usuário logado
+                                            sprintf(command, "sudo -u %s env DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$(id -u %s) xdg-open %s > /dev/null 2>&1", sudo_user, sudo_user, filepath);
+                                        } else {
+                                            // Imagens e textos são mais simples e abrem normalmente
+                                            sprintf(command, "sudo -u %s xdg-open %s > /dev/null 2>&1", sudo_user, filepath);
+                                        }
+                                    } else {
+                                        sprintf(command, "xdg-open %s > /dev/null 2>&1", filepath);
+                                    }
+                                    
+                                    system(command);
+
+                                    printf("\nFile Open\n");
+                                    printf("Press [ENTER] in the terminal when you want to go back\n");
+
+                                    int key;
+                                    while((key = getchar()) != '\n' && key != EOF);
+
+                                    if(remove(filepath) == 0) printf("Removing File, move to continue\n");
+                                    else printf("Warning, not possible to destroy file\n");
+                                    
+                                    // Check if MSG_END is sent next (in case it was the last pallet or game over)
+                                    MsgType end_type;
+                                    unsigned char end_len, end_data[MAX_DATA_LEN];
+                                    int end_status = recv_frame(sock_client, &client_seq_rx, &end_type, end_data, &end_len, 150, "client");
+                                    if (end_status == 0 && end_type == MSG_END) {
+                                        printf("Game Over! Server has ended the game.\n");
+                                        game_over = 1;
+                                    }
+                                } else if (file_type == MSG_END) {
                                     printf("Game Over! Server has ended the game.\n");
                                     game_over = 1;
                                 }
-                            } else if (file_type == MSG_END) {
-                                printf("Game Over! Server has ended the game.\n");
-                                game_over = 1;
                             }
                         }
                         break;

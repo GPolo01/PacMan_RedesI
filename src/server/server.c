@@ -65,7 +65,7 @@ int main(int argc, char **argv) {
                     send_frame(sock_server, seq_rec, MSG_ACK, NULL, 0, "server");
                     server_seq_rx = (server_seq_rx + 1) % 64;
 
-                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx, 0);
                 }
                 else if (type_rec >= MSG_MOV_RIGHT && type_rec <= MSG_MOV_DOWN) {
                     round_num++;
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
                         // Send the vision first
                         unsigned char fog_data[2000];
                         int vision_size = get_new_vision(fog_data, vision_range);
-                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx, action);
 
                         // Then send the file itself
                         printf("Sending file %s to client...\n", filepath);
@@ -119,7 +119,7 @@ int main(int argc, char **argv) {
                         // Send the vision first so the client can update the map showing Pacman's death / new position
                         unsigned char fog_data[2000];
                         int vision_size = get_new_vision(fog_data, vision_range);
-                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx, action);
 
                         if (pacman.life > 0) {
                             printf("PACMAN LOST ONE LIFE! (%d remaining)\n", pacman.life);
@@ -129,6 +129,11 @@ int main(int argc, char **argv) {
                             server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/game_over.jpg", 'G', server_seq_rx);
                             server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
                         }
+                    } else {
+                        // Regular turn vision send
+                        unsigned char fog_data[2000];
+                        int vision_size = get_new_vision(fog_data, vision_range);
+                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx, 0);
                     }
                 }
             } else if (seq_rec == (server_seq_rx + 63) % 64) {
