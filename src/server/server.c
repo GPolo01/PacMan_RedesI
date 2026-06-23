@@ -108,11 +108,6 @@ int main(int argc, char **argv) {
                         }
                         continue; 
                     } else if (action == 'M') {
-                        char filepath[256];
-                        MsgType file_type;
-
-                        file_type = MSG_JPG;
-                        
                         if (pacman.life > 0) {
                             printf("PACMAN LOST ONE LIFE! (%d remaining)\n", pacman.life);
                             server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/dead.jpg", 'D', server_seq_rx);
