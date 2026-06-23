@@ -99,15 +99,28 @@ int main(int argc, char **argv) {
                             case '5': file_type = MSG_MP4; strcpy(filepath, "../pallets/5.mp4"); break;
                             case '6': file_type = MSG_MP4; strcpy(filepath, "../pallets/6.mp4"); break;
                         }
+
+                        // Send the vision first
+                        unsigned char fog_data[2000];
+                        int vision_size = get_new_vision(fog_data, vision_range);
+                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+
+                        // Then send the file itself
                         printf("Sending file %s to client...\n", filepath);
                         int success = server_send_file(sock_server, &server_seq_tx, file_type, filepath, action, server_seq_rx);
                         if (success) printf("Transmission completed!\n");
+
                         if (pallets == 6) {
                             printf("ALL PALLETS COLLECTED! YOU WIN!\n");
                             server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
+                            continue; 
                         }
-                        continue; 
                     } else if (action == 'M') {
+                        // Send the vision first so the client can update the map showing Pacman's death / new position
+                        unsigned char fog_data[2000];
+                        int vision_size = get_new_vision(fog_data, vision_range);
+                        server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
+
                         if (pacman.life > 0) {
                             printf("PACMAN LOST ONE LIFE! (%d remaining)\n", pacman.life);
                             server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/dead.jpg", 'D', server_seq_rx);
@@ -116,13 +129,7 @@ int main(int argc, char **argv) {
                             server_send_file(sock_server, &server_seq_tx, MSG_JPG, "../pallets/game_over.jpg", 'G', server_seq_rx);
                             server_send(sock_server, &server_seq_tx, MSG_END, NULL, 0, server_seq_rx);
                         }
-                        continue;
                     }
-
-                    unsigned char fog_data[2000];
-                    int vision_size = get_new_vision(fog_data, vision_range);
-
-                    server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx);
                 }
             } else if (seq_rec == (server_seq_rx + 63) % 64) {
                 // Duplicate command (lost previous ACK) -> resend simple ACK
