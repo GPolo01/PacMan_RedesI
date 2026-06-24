@@ -13,8 +13,8 @@ int main(int argc, char **argv) {
     }
 
     int sock_client = create_raw_socket(argv[1]);
-    unsigned char client_seq_tx = 0; // Controls the sequence of what the client sends
-    unsigned char client_seq_rx = 0; // Controls the sequence of what the client receives
+    unsigned char client_seq_tx = 0; // Client sends
+    unsigned char client_seq_rx = 0; // Client receives
 
     MsgType type_received;
     unsigned char len_received, data_received[MAX_DATA_LEN], full_vision[2000];
@@ -31,12 +31,12 @@ int main(int argc, char **argv) {
 
     int success = send_and_wait(sock_client, &client_seq_tx, MSG_INIT, client_seq_rx);
     if (success) {
-        // Actively listens waiting for the first block of data of the server vision
+        // Waiting for the first server vision
         while (1) {
             int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
             if (status == 0 && type_received == MSG_VISION) {
                 char dummy_action = 0;
-                recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &dummy_action);
+                receive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &dummy_action);
                 render_map(full_vision, full_len);
                 break;
             }
@@ -50,23 +50,23 @@ int main(int argc, char **argv) {
     while (1) {
         MsgType movement_type = get_user_movement();
 
-        // Sends the movement and waits for the server ACK of receipt
+        // Sends the movement and waits for the server ACK
         success = send_and_wait(sock_client, &client_seq_tx, movement_type, client_seq_rx);
         
         if (success) {
             int game_over = 0;
-            // Actively listens to know what action the server took (Vision, golden pallet, game over)
+            // Listens to know what action the server took (Vision, Files, Game Over,...)
             while (1) {
                 int status = recv_frame(sock_client, &client_seq_rx, &type_received, data_received, &len_received, TIMEOUT_MS, "client");
                 
                 if (status == 0) {
                     if (type_received == MSG_VISION) {
                         char action_after_vision = 0;
-                        recive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &action_after_vision);
+                        receive_vision(sock_client, &client_seq_rx, data_received, len_received, full_vision, &full_len, &action_after_vision);
                         render_map(full_vision, full_len);
                         
+                        // Check if a file is coming next (after eating a pallet or dying)
                         if (action_after_vision != 0) {
-                            // Check if a file is coming next (after eating a pallet or dying)
                             MsgType file_type;
                             unsigned char file_len, file_data[MAX_DATA_LEN];
                             int file_status = recv_frame(sock_client, &client_seq_rx, &file_type, file_data, &file_len, TIMEOUT_MS, "client");
@@ -100,10 +100,9 @@ int main(int argc, char **argv) {
 
                                     if (sudo_user != NULL) {
                                         if (file_type == MSG_MP4) {
-                                            // O player de vídeo precisa ser forçado a achar o monitor e o áudio do usuário logado
+                                            // The video player needs to be forced to detect the logged-in user's monitor and audio.
                                             sprintf(command, "sudo -u %s env DISPLAY=:0 XDG_RUNTIME_DIR=/run/user/$(id -u %s) xdg-open %s > /dev/null 2>&1", sudo_user, sudo_user, filepath);
                                         } else {
-                                            // Imagens e textos são mais simples e abrem normalmente
                                             sprintf(command, "sudo -u %s xdg-open %s > /dev/null 2>&1", sudo_user, filepath);
                                         }
                                     } else {

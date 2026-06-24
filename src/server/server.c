@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
                             continue; 
                         }
                     } else if (action == 'M') {
-                        // Send the vision first so the client can update the map showing Pacman's death / new position
+                        // Send the vision first
                         unsigned char fog_data[2000];
                         int vision_size = get_new_vision(fog_data, vision_range);
                         server_send_vision(sock_server, &server_seq_tx, MSG_VISION, fog_data, vision_size, server_seq_rx, action);

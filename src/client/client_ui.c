@@ -14,7 +14,6 @@
 #define COLOR_EMPTY   "\x1b[90m" // Dark Gray
 #define COLOR_DOT     "\x1b[37m" // Magenta 
 
-// Prints a single character with its corresponding color
 void print_colored_char(unsigned char c) {
     switch (c) {
         case 'P': 
@@ -52,7 +51,7 @@ MsgType get_user_movement(void) {
         key = getchar();
         MsgType moviment;
         
-        // Ignore Enter key artifacts left in the standard input buffer
+        // Ignore Enter key on input buffer
         if (key == '\n') continue;
 
         switch (key) {
@@ -60,7 +59,7 @@ MsgType get_user_movement(void) {
             case 'a': case 'A': moviment = MSG_MOV_LEFT; break;
             case 's': case 'S': moviment = MSG_MOV_DOWN; break;
             case 'd': case 'D': moviment = MSG_MOV_RIGHT; break;
-            default: continue; // Ignore invalid keys and keep waiting
+            default: continue;
         }
 
         tcsetattr(STDIN_FILENO, TCSANOW, &old);

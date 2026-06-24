@@ -12,7 +12,6 @@
 #define COLOR_EMPTY   "\x1b[90m" // Dark Gray
 #define COLOR_DOT     "\x1b[37m" // Magenta 
 
-// Prints a single character with its corresponding color
 void print_colored_char(unsigned char c) {
     switch (c) {
         case 'P': 
@@ -36,7 +35,6 @@ void print_colored_char(unsigned char c) {
     }
 }
 
-// Auxiliary function to see if exist someone in that position of the matrix
 char get_character(int i, int j) {
     if (pacman.x == i && pacman.y == j) return 'P';
     if (red_ghost.x == i && red_ghost.y == j) return 'R';
@@ -46,7 +44,6 @@ char get_character(int i, int j) {
     return '\0';
 }
 
-// Loads the maze from a CSV file or generates a fallback map if missing
 void load_map(const char *filename) {
     FILE *file = fopen(filename, "r");
     
@@ -120,7 +117,6 @@ void load_map(const char *filename) {
     fclose(file);
 }
 
-// Generates the limited field of view for PacMan
 int get_new_vision(unsigned char *out_buffer, int range) {
     int written_bytes = 0;
 

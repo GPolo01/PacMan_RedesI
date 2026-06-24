@@ -29,7 +29,6 @@ char matrix[SIZE][SIZE];
         Y - random;
 */
 
-// Spawns a character at a random empty ('0') position
 void random_position(struct character *c) {
     int i, j;
     do {
@@ -42,7 +41,7 @@ void random_position(struct character *c) {
     c->old_x = i;
     c->old_y = j;
     c->direction = 0; // All start facing UP 
-    c->left_right_sense = '0'; //only important to Green Ghost
+    c->left_right_sense = '0'; // Only important to Green Ghost
 }
 
 void spawn_pallet(char item) {
@@ -55,7 +54,6 @@ void spawn_pallet(char item) {
     matrix[i][j] = item;
 }
 
-// Processes PacMan's movement requested by the client
 void pacman_movement(MsgType mov_type) {
     pacman.old_x = pacman.x;
     pacman.old_y = pacman.y;
@@ -154,7 +152,7 @@ char check_collisions() {
         return 'M';
     }
 
-    // verification to pallets
+    // Verification to pallets
     char item = matrix[pacman.x][pacman.y];
     if (item >= '1' && item <= '6') {
         matrix[pacman.x][pacman.y] = '0';

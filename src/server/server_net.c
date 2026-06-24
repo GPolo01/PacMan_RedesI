@@ -26,14 +26,12 @@ int server_send(int sockfd, unsigned char *seq_num, MsgType type, unsigned char 
             if (status == 0) {
                 if (rec_type == MSG_INIT || (rec_type >= MSG_MOV_RIGHT && rec_type <= MSG_MOV_DOWN)) {
                     if (rec_seq == (expected_rx + 63) % 64) {
-                        // The client retransmitted the previous command (probably because it lost the previous ACK).
-                        // Resend the corresponding ACK to unblock the client.
+                        // Server retransmitted a previous block (lost ACK)
+                        // Resending the ACK to unblock the client
                         send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "server");
                     } else if (rec_seq == expected_rx) {
-                        // The client sent a NEW command. This means it successfully received
-                        // the packet (implicit ACK).
-                        // server returns to the main loop
-                        // and handles this new command in the correct flow.
+                        // Implicit acknowledgment
+                        // Return 1 so the server returns to loop
                         return 0;
                     }
                 } else if (rec_seq == *seq_num) {

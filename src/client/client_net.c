@@ -1,8 +1,6 @@
 #include "client_net.h"
 #include "../common/socket.h"
-#include <sys/socket.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned char expected_rx) {
@@ -27,15 +25,14 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned
                 if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
                      rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
                     rec_seq == (expected_rx + 63) % 64) {
-                    // The server retransmitted a previous block (probably because it lost the previous ACK).
-                    // Resend the corresponding ACK to unblock the server.
+                    // Server retransmitted a previous block (lost ACK)
+                    // Resending the ACK to unblock the server
                     send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
                 } else if ((rec_type == MSG_VISION || rec_type == MSG_END || rec_type == MSG_DATA ||
                             rec_type == MSG_TXT || rec_type == MSG_JPG || rec_type == MSG_MP4) &&
                            rec_seq == expected_rx) {
-                    // The server already sent the next data block. This means it received
-                    // our command successfully (implicit acknowledgment).
-                    // Return success (1) so the client starts listening to the data in the correct flow.
+                    // Implicit acknowledgment
+                    // Return 1 so the client returns to loop
                     return 1;
                 } else if (rec_seq == *seq_num) {
                     if (rec_type == MSG_NACK) {
@@ -53,7 +50,7 @@ int send_and_wait(int sockfd, unsigned char *seq_num, MsgType mov_type, unsigned
         }
 
         if (ack_received) {
-            *seq_num = (*seq_num + 1) % 64; // Acknowledgment successfully received!
+            *seq_num = (*seq_num + 1) % 64;
             return 1; 
         }
 
@@ -108,8 +105,8 @@ int receive_file(int sockfd, unsigned char *seq_num, MsgType file_type, const un
     return 1;
 }
 
-int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initial_data, 
-                  unsigned char initial_len, unsigned char *full_vision, int *full_len, char *out_action_after_vision) {
+int receive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initial_data, 
+                   unsigned char initial_len, unsigned char *full_vision, int *full_len, char *out_action_after_vision) {
     memcpy(full_vision, initial_data, initial_len);
     *full_len = initial_len;
     *out_action_after_vision = 0;
@@ -139,6 +136,7 @@ int recive_vision(int sockfd, unsigned char *seq_num, const unsigned char *initi
                     break;
                 }
             } else if (rec_seq == (*seq_num + 63) % 64) {
+                // Duplicate block (previous ACK lost) -> resend the block's ACK
                 send_frame(sockfd, rec_seq, MSG_ACK, NULL, 0, "client");
             }
         }

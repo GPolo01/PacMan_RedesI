@@ -8,7 +8,7 @@
 #include <sys/time.h>
 #include <time.h>
 
-// table for CRC optimization
+// Table for CRC optimization
 static const unsigned char crc8_table[256] = {
     0x00, 0x07, 0x0E, 0x09, 0x1C, 0x1B, 0x12, 0x15, 0x38, 0x3F, 0x36, 0x31, 0x24, 0x23, 0x2A, 0x2D,
     0x70, 0x77, 0x7E, 0x79, 0x6C, 0x6B, 0x62, 0x65, 0x48, 0x4F, 0x46, 0x41, 0x54, 0x53, 0x5A, 0x5D,
@@ -132,7 +132,7 @@ int unpack_frame(const unsigned char *buf, int length, unsigned char *out_seq,
     *out_type = (MsgType)type;
     if (len > 0 && out_data != NULL) memcpy(out_data, temp_buf + 3, len);
 
-    return 0; // Success
+    return 0;
 }
 
 const char* get_msg_type_name(MsgType type) {
@@ -193,7 +193,7 @@ int recv_frame(int sockfd, unsigned char *out_seq, MsgType *out_type, unsigned c
             int status = unpack_frame(buffer_rec, bytes, out_seq, out_type, out_data, out_len);
             if (status == 0) {
                 log_message("RECV", *out_seq, *out_type, *out_len, log_prefix);
-                return 0; // Success
+                return 0;
             } else if (status == NOT_CRC || status == NOT_LENGTH) {
                 unsigned char bad_seq = ((buffer_rec[1] & 0x07) << 3) | ((buffer_rec[2] >> 5) & 0x07);
                 send_frame(sockfd, bad_seq, MSG_NACK, NULL, 0, log_prefix);

@@ -24,9 +24,9 @@
 #define NOT_LENGTH  -2
 #define NOT_CRC     -3
 
-#define TIMEOUT_MS   1000 // Reduced from 5s to 1s for better responsiveness
+#define TIMEOUT_MS   1000
 
-/* Unused values: 8, 9, 14 */
+// Unused values: 8, 9, 14
 typedef enum {
     MSG_ACK = 0,
     MSG_NACK = 1,
@@ -49,7 +49,7 @@ typedef enum {
     ERR_WRITE = 2
 } ErrorCode;
 
-// Returns the friendly name of the message type for logging
+// Returns the name of the message type
 const char* get_msg_type_name(MsgType type);
 
 // Calculates the CRC (Polynomial Division)
