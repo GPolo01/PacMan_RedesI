@@ -7,20 +7,10 @@ Projeto prático que implementa uma versão remota cliente-servidor do PacMan "n
 ## Informações Gerais
 
 * **Modalidade:** Cliente-servidor remoto.
-* **Equipe:** Em duplas (desconto de 20% para trabalhos individuais). O projeto deve obrigatoriamente ser apresentado pelos dois membros da equipe.
+* **Equipe:** Em duplas. O projeto deve obrigatoriamente ser apresentado pelos dois membros da equipe.
 * **Infraestrutura:** O Cliente deve rodar em um computador e o Servidor em outro, conectados diretamente via cabo de rede.
 * **Linguagens Permitidas:** C ou C++ (Obrigatório).
 * **Comunicação:** Via RAWSocket (necessário privilégio de `root` nas máquinas), respeitando o protocolo de comunicação definido em sala.
-* **Avaliação:** Valor total de 40,0 pontos (pontuações bônus não fazem a nota final ultrapassar o limite de 40 pontos na média).
-
----
-
-## Entrega e Apresentação
-
-1. **Apresentação Física:** Entrega de um relatório impresso (1 página) descrevendo as escolhas de desenvolvimento arquiteturais adotadas pela equipe.
-2. **Entrega Digital (UFPR Virtual):**
-   * Código-fonte e arquivo executável compactados em um arquivo `.tgz`, nomeado com os números de GRR da dupla.
-   * Relatório em formato `.pdf`.
 
 ---
 
@@ -28,7 +18,6 @@ Projeto prático que implementa uma versão remota cliente-servidor do PacMan "n
 
 * **Timeout:** Obrigatório.
 * **Controle de Fluxo:** Para-e-espera (Stop-and-wait).
-* **Bônus (10%):** Implementação da transmissão dos arquivos das pastilhas utilizando janela deslizante de tamanho 5.
 
 ---
 
